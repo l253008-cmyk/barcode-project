@@ -1,10 +1,10 @@
-// ean13.cpp                                          
-
 #include "barcode/ean13.hpp"
 #include "barcode/config.hpp"
 #include "barcode/error.hpp"
 #include "barcode/patterns.hpp"
 #include "barcode/validator.hpp"
+
+using namespace std;
 
 // True if every character is a digit from 0 to 9.
 static bool allDigits(const string& text) {
@@ -33,7 +33,7 @@ int computeCheckDigit(const string& first12Digits) {
             weightedSum += 3 * digit;
         }
     }
-    int checkDigit = (10 - weightedSum % 10) % 10;  // The last "% 10" gives 0 instead of 10 when the sum ends in 0.
+    int checkDigit = (10 - weightedSum % 10) % 10;
     return checkDigit;
 }
 
@@ -75,7 +75,7 @@ string buildModules(const string& ean13) {
         throw BarcodeError("buildModules: need exactly 13 digits");
     }
     if (ean13[0] != '0') {
-        throw BarcodeError("buildModules: first digit must be 0");  // The first digit is not drawn, so it must always be 0.
+        throw BarcodeError("buildModules: first digit must be 0");
     }
 
     string first12Digits = ean13.substr(0, 12);
@@ -85,17 +85,17 @@ string buildModules(const string& ean13) {
         throw BarcodeError("buildModules: check digit does not match");
     }
 
-    string modules = "101";                          // start guard
-    for (int i = 1; i <= 6; i++) {                   // left digits
+    string modules = "101";
+    for (int i = 1; i <= 6; i++) {
         int digit = ean13[i] - '0';
         modules += getLPattern(digit);
     }
-    modules += "01010";                              // centre guard
-    for (int i = 7; i <= 12; i++) {                  // right digits
+    modules += "01010";
+    for (int i = 7; i <= 12; i++) {
         int digit = ean13[i] - '0';
         modules += getRPattern(digit);
     }
 
-    modules += "101";                                // end guard
+    modules += "101";
     return modules;
 }

@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
-using namespace std;
 
-string getLPattern(int digit);
-string getRPattern(int digit);
-int matchDigit(const string& modules, bool leftSide);
+// These functions give the barcode pattern of a digit.
+std::string getLPattern(int digit);
+std::string getRPattern(int digit);
+
+// Finds the digit that matches the given pattern.
+int matchDigit(const std::string& modules, bool leftSide);
