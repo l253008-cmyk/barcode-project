@@ -1,4 +1,4 @@
-// encoder.cpp
+// encoder.cpp                                        Owner: Person 2
 // Joins the steps of Part 1: code -> 13 digits -> 95 characters -> picture -> file.
 
 #include "barcode/encoder.hpp"
@@ -13,15 +13,16 @@ using namespace std;
 // A wrong code makes toEan13 throw, so nothing is drawn.
 Image generateBarcode(const string& code) {
     string ean13 = toEan13(code);
-    string modules = buildModules(ean13);
-    Image barcodeImage = renderModules(modules, kModuleWidthPx, kBarHeightPx, kQuietZoneModules);
+    string modules = buildModules(ean13);  
+    // The sizes come from config.hpp.
+    Image barcodeImage = renderModules(modules,kModuleWidthPx, kBarHeightPx,  kQuietZoneModules);
     return barcodeImage;
 }
 
 void generateToFile(const string& code, const string& path) {
-    if (path.empty()) {
+    if (path.empty()) {                // A file needs a name.
         throw BarcodeError("generateToFile: path is empty");
     }
     Image barcodeImage = generateBarcode(code);
-    saveImage(path, barcodeImage);
+    saveImage(path, barcodeImage);   // throws if saving fails
 }
