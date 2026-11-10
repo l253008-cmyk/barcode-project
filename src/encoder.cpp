@@ -13,16 +13,22 @@ using namespace std;
 // A wrong code makes toEan13 throw, so nothing is drawn.
 Image generateBarcode(const string& code) {
     string ean13 = toEan13(code);
-    string modules = buildModules(ean13);  
+    string modules = buildModules(ean13);
+
     // The sizes come from config.hpp.
-    Image barcodeImage = renderModules(modules,kModuleWidthPx, kBarHeightPx,  kQuietZoneModules);
+    Image barcodeImage = renderModules(modules,
+        kModuleWidthPx,
+        kBarHeightPx,
+        kQuietZoneModules);
     return barcodeImage;
 }
 
 void generateToFile(const string& code, const string& path) {
-    if (path.empty()) {                // A file needs a name.
+    // A file needs a name.
+    if (path.empty()) {
         throw BarcodeError("generateToFile: path is empty");
     }
+
     Image barcodeImage = generateBarcode(code);
-    saveImage(path, barcodeImage);   // throws if saving fails
+    saveImage(barcodeImage, path);   // image first, then path
 }
