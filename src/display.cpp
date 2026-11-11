@@ -11,30 +11,45 @@
 
 using namespace std;
 
+// Prints the barcode in the console like a real barcode:
+// a white label (solid blocks) with black bars (spaces) on it.
+// Only this file uses it, so it is kept private.
+static void printTextPreview(const Image& img) {
+    const int step = kModuleWidthPx;   // pixels in one module
+    const int row = img.height / 2;    // all rows are the same, so use the middle one
+    const int barLines = 6;            // how many text lines tall the bars are
+
+#ifdef _WIN32
+    const char white = static_cast<char>(219);   // full block in the Windows console
+#else
+    const char white = '#';
+#endif
+
+    string bars = "";
+    for (int x = step / 2; x < img.width; x = x + step) {
+        if (img.at(x, row) < 128) {
+            bars = bars + " ";         // black bar
+        }
+        else {
+            bars = bars + white;       // white background
+        }
+    }
+    string label(bars.size(), white);  // plain white line for the top and bottom edge
+
+    cout << "\nBarcode preview:\n" << label << "\n";
+    for (int i = 0; i < barLines; i++) {
+        cout << bars << "\n";
+    }
+    cout << label << "\n";
+}
+
 void showImage(const Image& img) {
     if (img.width <= 0 || img.height <= 0) {
         throw BarcodeError("Cannot display an empty image.");
     }
 
-   
-    int row = img.height / 2;
-    int step = kModuleWidthPx;
+    printTextPreview(img);
 
-    string line = "";
-    for (int x = step / 2; x < img.width; x = x + step) {
-        if (img.at(x, row) < 128) {
-            line = line + "#";
-        } else {
-            line = line + " ";
-        }
-    }
-
-    cout << "\nText preview:\n";
-    for (int i = 0; i < 3; i++) {
-        cout << line << "\n";
-    }
-
-    
     string fileName = "barcode_preview.bmp";
     saveImage(img, fileName);
 
