@@ -36,3 +36,26 @@ out/
 .vs/
 CMakeSettings.json
 *.exe
+# CMake build output
+build/
+
+# Visual Studio 2022 settings
+.vs/
+*.vcxproj.user
+CMakeUserPresets.json
+
+# Files the program and tests create while running
+barcode_preview.bmp
+barcode_*.bmp
+test_image.pgm
+test_image.bmp
+test_output.pgm
+roundtrip_test.bmp
+out.bmp
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.pdb
+
