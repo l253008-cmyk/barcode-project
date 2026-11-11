@@ -1,8 +1,11 @@
-#pragma once
-#include <string>
-using namespace std;
+#ifndef BARCODE_EAN13_HPP
+#define BARCODE_EAN13_HPP
 
-int computeCheckDigit(const string& first12);
-string toEan13(const string& code);
-string fromEan13(const string& ean13);
-string buildModules(const string& ean13);
+#include <string>
+
+int computeCheckDigit(const std::string& first12Digits);
+std::string toEan13(const std::string& code);
+std::string fromEan13(const std::string& ean13);
+std::string buildModules(const std::string& ean13);
+
+#endif
