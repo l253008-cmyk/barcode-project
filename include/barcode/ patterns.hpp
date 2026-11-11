@@ -1,7 +1,10 @@
-#pragma once
-#include <string>
-using namespace std;
+#ifndef BARCODE_PATTERNS_HPP
+#define BARCODE_PATTERNS_HPP
 
-string getLPattern(int digit);
-string getRPattern(int digit);
-int matchDigit(const string& modules, bool leftSide);
+#include <string>
+
+std::string getLPattern(int digit);
+std::string getRPattern(int digit);
+int matchDigit(const std::string& modules, bool leftSide);
+
+#endif
