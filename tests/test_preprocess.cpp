@@ -6,7 +6,6 @@
 static bool isBarPixel(int x) {
     return (x >= 20 && x <= 24) || (x >= 70 && x <= 74);
 }
-
 int main() {
     bool ok = true;
 

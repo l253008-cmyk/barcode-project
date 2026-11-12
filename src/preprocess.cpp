@@ -60,4 +60,5 @@ Image toBinary(const Image& gray) {
         }
     }
     return binary;
+
 }
