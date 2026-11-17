@@ -1,0 +1,12 @@
+1 100001 TEA Tetley Tea Bags 25 count 350.00 17.50 10.00 40 data/barcodes/100001.bmp#
+2 100002 SUGAR Sugar Loose weight 180.00 0.00 0.00 25.5 data/barcodes/100002.bmp#
+3 100003 BISCUIT Sooper Biscuit count 60.00 3.00 5.00 100 data/barcodes/100003.bmp#
+4 100004 RICE Basmati Rice Loose weight 420.00 0.00 15.00 60 data/barcodes/100004.bmp#
+5 100005 MILK Olpers Milk 1L count 330.00 0.00 0.00 48 data/barcodes/100005.bmp#
+6 100006 FLOUR Atta Flour Loose weight 150.00 0.00 0.00 80 data/barcodes/100006.bmp#
+7 100007 OIL Dalda Cooking Oil 1L count 520.00 26.00 20.00 30 data/barcodes/100007.bmp#
+8 100008 SOAP Lux Soap Bar count 120.00 6.00 4.00 75 data/barcodes/100008.bmp#
+9 100009 SALT National Salt 800g count 70.00 0.00 0.00 90 data/barcodes/100009.bmp#
+10 100010 LENTIL Daal Masoor Loose weight 300.00 0.00 5.00 35.5 data/barcodes/100010.bmp#
+11 100011 JUICE Nestle Fruita Juice count 150.00 7.50 0.00 55 data/barcodes/100011.bmp#
+12 100012 SHAMPOO Sunsilk Shampoo 200ml count 450.00 22.50 25.00 20 data/barcodes/100012.bmp#
