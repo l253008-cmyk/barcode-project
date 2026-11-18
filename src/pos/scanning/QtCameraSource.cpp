@@ -23,8 +23,8 @@ namespace {
         for (const QCameraFormat& format : device.videoFormats()) {
             const QSize size = format.resolution();
             const long long distance =
-                std::llabs(static_cast<long long>(size.width()) - config::kCameraWidth) +
-                std::llabs(static_cast<long long>(size.height()) - config::kCameraHeight);
+                std::llabs(static_cast<long long>(size.width()) - pos::config::kCameraWidth) +
+                std::llabs(static_cast<long long>(size.height()) - pos::config::kCameraHeight);
             if (bestDistance < 0 || distance < bestDistance) {
                 bestDistance = distance;
                 best = format;

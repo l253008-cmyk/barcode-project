@@ -71,7 +71,7 @@ bool TextRecordFile::endsWithNewline() const {
     return last == '\n';
 }
 
-List<List<std::string>> TextRecordFile::readAll() const {
+RecordSet TextRecordFile::readAll() const {
     ensureExists();
 
     std::ifstream in(path_.c_str());
@@ -102,7 +102,7 @@ List<List<std::string>> TextRecordFile::readAll() const {
         }
         records.push_back(tokens);
     }
-    return records;
+    return RecordSet(records);
 }
 
 void TextRecordFile::append(const List<std::string>& tokens) {
@@ -113,7 +113,7 @@ void TextRecordFile::append(const List<std::string>& tokens) {
     // on a fresh line so two records never run together.
     bool needsBreak = !endsWithNewline();
 
-    std::ofstream out(path_.c_str(), std::ios::app);
+    std::ofstream out(path_.c_str(), std::ios::app | std::ios::binary);
     if (!out.is_open()) {
         throw PosError("Cannot open the data file for writing: " + path_);
     }
@@ -123,6 +123,14 @@ void TextRecordFile::append(const List<std::string>& tokens) {
     if (!out) {
         throw PosError("Writing to " + path_ + " failed");
     }
+}
+
+void TextRecordFile::append(const std::vector<std::string>& tokens) {
+    List<std::string> list;
+    for (const auto& token : tokens) {
+        list.push_back(token);
+    }
+    append(list);
 }
 
 void TextRecordFile::rewrite(const List<List<std::string>>& records) {
@@ -135,7 +143,7 @@ void TextRecordFile::rewrite(const List<List<std::string>>& records) {
 
     const std::string tempPath = path_ + ".tmp";
     {
-        std::ofstream out(tempPath.c_str(), std::ios::trunc);
+        std::ofstream out(tempPath.c_str(), std::ios::trunc | std::ios::binary);
         if (!out.is_open()) {
             throw PosError("Cannot create the temporary file " + tempPath);
         }
@@ -158,6 +166,18 @@ void TextRecordFile::rewrite(const List<List<std::string>>& records) {
         throw PosError("Could not replace " + path_ + ". The new data is saved in " +
                        tempPath);
     }
+}
+
+void TextRecordFile::rewrite(const std::vector<std::vector<std::string>>& records) {
+    List<List<std::string>> list;
+    for (const auto& row : records) {
+        List<std::string> rowList;
+        for (const auto& token : row) {
+            rowList.push_back(token);
+        }
+        list.push_back(rowList);
+    }
+    rewrite(list);
 }
 
 bool TextRecordFile::removeFromDisk() {

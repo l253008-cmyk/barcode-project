@@ -5,6 +5,10 @@ FileBillRepository::FileBillRepository(TextRecordFile file)
     : file_(file) {
 }
 
+FileBillRepository::FileBillRepository(const std::string& path)
+    : file_(path) {
+}
+
 void FileBillRepository::add(const Bill& bill) {
     // Make all records first, so a bad bill is refused before the file is touched.
     std::vector<std::vector<std::string>> records = BillCodec::toRecords(bill);
@@ -13,7 +17,7 @@ void FileBillRepository::add(const Bill& bill) {
     }
 }
 
-std::string FileBillRepository::lastId() {
+std::string FileBillRepository::lastId() const {
     std::vector<std::vector<std::string>> records = file_.readAll();
     if (records.empty() || records.back().empty()) {
         return "";

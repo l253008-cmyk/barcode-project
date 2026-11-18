@@ -21,4 +21,6 @@ public:
 
 }  // namespace pos
 
+using IOrderRepository = pos::IOrderRepository;
+
 #endif

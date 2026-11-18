@@ -26,4 +26,6 @@ private:
 
 }  // namespace pos
 
+using FileOrderDetailRepository = pos::FileOrderDetailRepository;
+
 #endif

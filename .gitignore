@@ -59,3 +59,13 @@ out.bmp
 *.exe
 *.pdb
 
+# Build trees
+build/
+build_*/
+
+# POS runtime generated output files
+data/Bill.txt
+data/Order.txt
+data/OrderDetail.txt
+
+
