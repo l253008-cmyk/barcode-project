@@ -14,7 +14,7 @@ public:
     virtual void add(const Bill& bill) = 0;
 
     // Id of the last saved bill, or "" when there is no bill yet.
-    virtual std::string lastId() = 0;
+    virtual std::string lastId() const = 0;
 };
 
 #endif // POS_I_BILL_REPOSITORY_HPP

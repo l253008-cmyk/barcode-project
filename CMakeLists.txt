@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 file(GLOB LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
 list(FILTER LIB_SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
 
-add_library(barcode_lib ${LIB_SOURCES})
+add_library(barcode_lib ${LIB_SOURCES} "src/pos/storage/BillCodec.cpp" "src/pos/storage/FileBillRepository.cpp" "src/pos/storage/BillCodec.cpp")
 # Headers live in include/barcode/ and are used as #include "barcode/xyz.hpp"
 target_include_directories(barcode_lib PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
@@ -24,7 +24,7 @@ endif()
 
 # ---------- Program: menu and command line (main.cpp) ----------
 if(EXISTS ${CMAKE_SOURCE_DIR}/src/main.cpp)
-    add_executable(barcode src/main.cpp)
+    add_executable(barcode src/main.cpp "src/pos/storage/BillCodec.cpp" "src/pos/storage/FileBillRepository.cpp" "src/pos/storage/BillCodec.cpp")
     target_link_libraries(barcode barcode_lib)
 endif()
 
@@ -47,7 +47,7 @@ set(TEST_NAMES
 
 foreach(t ${TEST_NAMES})
     if(EXISTS ${CMAKE_SOURCE_DIR}/tests/${t}.cpp)
-        add_executable(${t} tests/${t}.cpp)
+        add_executable(${t} tests/${t}.cpp "src/pos/storage/BillCodec.cpp" "src/pos/storage/FileBillRepository.cpp" "src/pos/storage/BillCodec.cpp")
         target_link_libraries(${t} barcode_lib)
         # Lets tests find the sample images: SAMPLES_DIR "/samples"
         target_compile_definitions(${t} PRIVATE SAMPLES_DIR="${CMAKE_SOURCE_DIR}/samples")

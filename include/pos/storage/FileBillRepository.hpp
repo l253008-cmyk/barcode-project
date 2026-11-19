@@ -11,9 +11,10 @@
 class FileBillRepository : public IBillRepository {
 public:
     explicit FileBillRepository(TextRecordFile file);
+    explicit FileBillRepository(const std::string& path);
 
     void add(const Bill& bill) override;
-    std::string lastId() override;
+    std::string lastId() const override;
 
     // Every saved bill (used by tests and later by a bill history screen).
     std::vector<Bill> all() const;
