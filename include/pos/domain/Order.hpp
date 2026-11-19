@@ -2,6 +2,7 @@
 #define POS_DOMAIN_ORDER_HPP
 
 #include <string>
+#include <vector>
 
 #include "pos/common/List.hpp"
 #include "pos/common/Money.hpp"
@@ -26,7 +27,7 @@ struct Order {
     Money payment;
     PaymentMode mode = PaymentMode::Cash;
     std::string merchant;
-    List<OrderLine> lines;
+    std::vector<OrderLine> lines;
 };
 
 // Text used in Order.txt: in-progress, on-hold, paid, archived / cash, card, wallet.
@@ -38,5 +39,13 @@ OrderStatus orderStatusFromString(const std::string& text);
 PaymentMode paymentModeFromString(const std::string& text);
 
 }  // namespace pos
+
+using Order = pos::Order;
+using OrderLine = pos::OrderLine;
+using OrderStatus = pos::OrderStatus;
+using PaymentMode = pos::PaymentMode;
+using pos::toString;
+using pos::orderStatusFromString;
+using pos::paymentModeFromString;
 
 #endif

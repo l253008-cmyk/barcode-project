@@ -17,4 +17,6 @@ public:
 
 }  // namespace pos
 
+using IOrderDetailRepository = pos::IOrderDetailRepository;
+
 #endif

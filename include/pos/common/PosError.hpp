@@ -21,4 +21,6 @@ private:
 
 }  // namespace pos
 
+using PosError = pos::PosError;
+
 #endif

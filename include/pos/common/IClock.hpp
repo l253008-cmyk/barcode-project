@@ -18,4 +18,6 @@ public:
 
 }  // namespace pos
 
+using IClock = pos::IClock;
+
 #endif

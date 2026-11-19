@@ -31,4 +31,6 @@ private:
 
 }  // namespace pos
 
+using IdGenerator = pos::IdGenerator;
+
 #endif
