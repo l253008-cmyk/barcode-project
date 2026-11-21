@@ -22,6 +22,14 @@ namespace pos {
 		inline std::string orderFile() { return dataDir() + "/Order.txt"; }
 		inline std::string orderDetailFile() { return dataDir() + "/OrderDetail.txt"; }
 		inline std::string billFile() { return dataDir() + "/Bill.txt"; }
+		inline std::string billDetailFile() { return dataDir() + "/BillDetail.txt"; }
+		inline std::string categoryFile() { return dataDir() + "/PCategory.txt"; }
+		inline std::string seasonFile() { return dataDir() + "/Seasons.txt"; }
+		inline std::string receiptsDir() { return dataDir() + "/receipts"; }
+
+		// ---------- security & shop info ----------
+		inline std::string managerPin() { return "1234"; }
+		inline std::string shopName() { return "Store POS System"; }
 
 		// ---------- camera ----------
 		// Preferred frame size. The camera format closest to this size is used.

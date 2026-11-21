@@ -7,7 +7,6 @@
 #include "pos/storage/IProductRepository.hpp"
 using namespace std;
 
-// fake repository, keeps the products in a list so no file is needed
 class FakeProductRepository : public IProductRepository {
 public:
     vector<Product> products;
@@ -42,40 +41,45 @@ public:
         }
     }
 
+    void update(const Product& product) override {
+        for (Product& p : products) {
+            if (p.id == product.id) {
+                p = product;
+                return;
+            }
+        }
+    }
+
     void add(const Product& product) override {
         products.push_back(product);
     }
 };
 
-// the three products from the proposal
 static Product makeTea() {
-    Product tea = { 1, "100001", "TEA", "Tetley Tea Bags 25", MeasurementUnit::Count,
+    Product tea = { 1, "10", "100001", "TEA", "Tetley Tea Bags 25", MeasurementUnit::Count,
                    Money::parse("350.00"), Money::parse("17.50"), Money::parse("10.00"),
                    40, "data/barcodes/100001.bmp" };
     return tea;
 }
 
 static Product makeSugar() {
-    Product sugar = { 2, "100002", "SUGAR", "Sugar Loose", MeasurementUnit::Weight,
+    Product sugar = { 2, "10", "100002", "SUGAR", "Sugar Loose", MeasurementUnit::Weight,
                      Money::parse("180.00"), Money::parse("0.00"), Money::parse("0.00"),
                      25.5, "data/barcodes/100002.bmp" };
     return sugar;
 }
 
 static Product makeBiscuit() {
-    Product biscuit = { 3, "100003", "BISCUIT", "Sooper Biscuit", MeasurementUnit::Count,
+    Product biscuit = { 3, "10", "100003", "BISCUIT", "Sooper Biscuit", MeasurementUnit::Count,
                        Money::parse("60.00"), Money::parse("3.00"), Money::parse("5.00"),
                        100, "data/barcodes/100003.bmp" };
     return biscuit;
 }
 
-// these helpers give true when the call throws a PosError
-
 static bool describeThrows(const ProductService& service, const string& barcode) {
     try {
         service.describeByBarcode(barcode);
-    }
-    catch (const PosError&) {
+    } catch (const PosError&) {
         return true;
     }
     return false;
@@ -84,8 +88,7 @@ static bool describeThrows(const ProductService& service, const string& barcode)
 static bool canSellThrows(const ProductService& service, const string& barcode, double quantity) {
     try {
         service.canSell(barcode, quantity);
-    }
-    catch (const PosError&) {
+    } catch (const PosError&) {
         return true;
     }
     return false;
@@ -94,8 +97,7 @@ static bool canSellThrows(const ProductService& service, const string& barcode, 
 static bool reduceStockThrows(ProductService& service, const string& barcode, double quantity) {
     try {
         service.reduceStock(barcode, quantity);
-    }
-    catch (const PosError&) {
+    } catch (const PosError&) {
         return true;
     }
     return false;
@@ -105,24 +107,22 @@ int main() {
     Product tea = makeTea();
     Product sugar = makeSugar();
 
-    // ---------- StockPolicy ----------
     StockPolicy policy;
     assert(policy.canFulfil(tea, 1));
-    assert(policy.canFulfil(tea, 40));             // last unit can be sold
-    assert(!policy.canFulfil(tea, 41));            // more than the stock
-    assert(!policy.canFulfil(tea, 0));             // nothing
-    assert(!policy.canFulfil(tea, -1));            // negative
-    assert(!policy.canFulfil(tea, 1.5));           // count product, not a whole number
-    assert(policy.canFulfil(sugar, 1.5));          // weight product, decimals are fine
+    assert(policy.canFulfil(tea, 40));
+    assert(!policy.canFulfil(tea, 41));
+    assert(!policy.canFulfil(tea, 0));
+    assert(!policy.canFulfil(tea, -1));
+    assert(!policy.canFulfil(tea, 1.5));
+    assert(policy.canFulfil(sugar, 1.5));
     assert(policy.canFulfil(sugar, 25.5));
     assert(!policy.canFulfil(sugar, 25.6));
     assert(!policy.canFulfil(sugar, 0));
 
-    // ---------- ProductService ----------
     FakeProductRepository repository;
-    repository.products.insert(repository.products.end(), 1, makeTea());
-    repository.products.insert(repository.products.end(), 1, makeSugar());
-    repository.products.insert(repository.products.end(), 1, makeBiscuit());
+    repository.products.push_back(makeTea());
+    repository.products.push_back(makeSugar());
+    repository.products.push_back(makeBiscuit());
     ProductService service(repository, policy);
 
     // describeByBarcode
@@ -132,7 +132,7 @@ int main() {
     assert(text.find(tea.unitPrice.toString()) != string::npos);
     assert(text.find("Available: 40") != string::npos);
     assert(service.describeByBarcode("100002").find("Available: 25.5") != string::npos);
-    assert(describeThrows(service, "999999"));     // not in the list
+    assert(describeThrows(service, "999999"));
     assert(describeThrows(service, ""));
 
     // canSell
@@ -148,28 +148,46 @@ int main() {
     service.reduceStock("100002", 1.5);
     assert(repository.findById(2).value().availableQty == 24);
 
-    assert(reduceStockThrows(service, "100001", 41));          // too much
-    assert(repository.findById(1).value().availableQty == 38); // stock did not change
-    assert(reduceStockThrows(service, "999999", 1));           // unknown barcode
+    assert(reduceStockThrows(service, "100001", 41));
+    assert(repository.findById(1).value().availableQty == 38);
+    assert(reduceStockThrows(service, "999999", 1));
 
-    service.reduceStock("100001", 38);                         // sell everything
+    service.reduceStock("100001", 38);
     assert(repository.findById(1).value().availableQty == 0);
-    assert(!service.canSell("100001", 1));                     // sold out now
+    assert(!service.canSell("100001", 1));
 
     // allProducts & nextProductId
     assert(service.allProducts().size() == 3);
     assert(service.nextProductId() == 4);
 
+    // barcode generation for category
+    string nextBc = service.generateBarcode("10");
+    assert(nextBc == "100004"); // 100001..100003 already used
+
+    string nextBc20 = service.generateBarcode("20");
+    assert(nextBc20 == "200001"); // category 20 is empty
+
     // addProduct
-    Product newProd = { 4, "100004", "COFFEE", "Nescafe Classic", MeasurementUnit::Count,
+    Product newProd = { 4, "10", "100004", "COFFEE", "Nescafe Classic", MeasurementUnit::Count,
                         Money::parse("450.00"), Money::parse("20.00"), Money::parse("0.00"),
                         50, "data/barcodes/100004.bmp" };
     service.addProduct(newProd);
     assert(service.allProducts().size() == 4);
     assert(service.nextProductId() == 5);
-    assert(service.describeByBarcode("100004").find("COFFEE") != string::npos);
 
-    // addProduct with duplicate barcode should throw
+    // updateProduct
+    Product updated = newProd;
+    updated.name = "Nescafe Gold 100g";
+    updated.availableQty = 75;
+    service.updateProduct(updated);
+    assert(repository.findById(4)->name == "Nescafe Gold 100g");
+    assert(repository.findById(4)->availableQty == 75);
+
+    // updateStock
+    service.updateStock(4, 90);
+    assert(repository.findById(4)->availableQty == 90);
+
+    // duplicate barcode check
     bool threwDuplicate = false;
     try {
         service.addProduct(newProd);

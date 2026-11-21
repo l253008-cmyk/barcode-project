@@ -56,24 +56,26 @@ int main() {
     const std::string orderPath = "test_flow_orders.txt";
     const std::string detailPath = "test_flow_details.txt";
     const std::string billPath = "test_flow_bills.txt";
+    const std::string billDetailPath = "test_flow_bill_details.txt";
 
     // Setup initial Product file with Golden products
     std::string initialProducts =
-        "1 100001 TEA Tetley Tea Bags 25 count 350.00 17.50 10.00 40 data/barcodes/100001.bmp#\n"
-        "2 100002 SUGAR Sugar Loose weight 180.00 0.00 0.00 25.5 data/barcodes/100002.bmp#\n"
-        "3 100003 BISCUIT Sooper Biscuit count 60.00 3.00 5.00 100 data/barcodes/100003.bmp#\n";
+        "1 10 100001 TEA Tetley Tea Bags 25 count 350.00 17.50 10.00 40 data/barcodes/100001.bmp#\n"
+        "2 10 100002 SUGAR Sugar Loose weight 180.00 0.00 0.00 25.5 data/barcodes/100002.bmp#\n"
+        "3 10 100003 BISCUIT Sooper Biscuit count 60.00 3.00 5.00 100 data/barcodes/100003.bmp#\n";
     writeFile(productPath, initialProducts);
 
     // Seed previous records so IdGenerator yields order 123 (00012314) and bill 45 (000000045)
     writeFile(orderPath, "00012214 2026-11-14 10:00:00 Prev 0300 paid 100.00 cash -#\n");
     writeFile(detailPath, "");
-    writeFile(billPath, "000000044 Prev 00012214 TEA 350.00 10.00 1 350.00 17.50 10.00 357.50 paid#\n");
+    writeFile(billPath, "000000044 Prev 00012214 350.00 17.50 10.00 357.50 360.00 2.50 paid 0.00 0.00 2026-11-14 10:00:00#\n");
+    writeFile(billDetailPath, "000000044 TEA 350.00 1 10.00#\n");
 
     FixedClock clock;
     FileProductRepository productRepo(productPath);
     pos::FileOrderRepository orderRepo(orderPath);
     pos::FileOrderDetailRepository detailRepo(detailPath);
-    FileBillRepository billRepo(billPath);
+    FileBillRepository billRepo(billPath, billDetailPath);
 
     pos::IdGenerator idGen(orderRepo, billRepo, clock);
     StockPolicy stockPolicy;
@@ -97,7 +99,7 @@ int main() {
     // 3. 9-character acronym rejected by ProductCodec
     ok &= checkThrowsAs<PosError>("9-character acronym rejected", [&]() {
         std::vector<std::string> badTokens = {
-            "1", "100001", "TOOLONGACR", "Test Name", "count", "100.00", "0.00", "0.00", "10", "path.bmp"
+            "1", "10", "100001", "TOOLONGACR", "Test Name", "count", "100.00", "0.00", "0.00", "10", "path.bmp"
         };
         ProductCodec::parse(badTokens);
     });
@@ -130,10 +132,12 @@ int main() {
     ok &= checkTrue("OrderDetail.txt contains SUGAR line", detailContent.find("00012314 2 100002 1.5#") != std::string::npos);
 
     std::string billContent = readFileContents(billPath);
-    std::string expectedBillTea = "000000045 Ali Raza 00012314 TEA 350.00 10.00 2 970.00 35.00 20.00 985.00 paid#";
-    std::string expectedBillSugar = "000000045 Ali Raza 00012314 SUGAR 180.00 0.00 1.5 970.00 35.00 20.00 985.00 paid#";
-    ok &= checkTrue("Bill.txt contains TEA golden line", billContent.find(expectedBillTea) != std::string::npos);
-    ok &= checkTrue("Bill.txt contains SUGAR golden line", billContent.find(expectedBillSugar) != std::string::npos);
+    std::string expectedBillLine = "000000045 Ali Raza 00012314 970.00 35.00 20.00 985.00 985.00 0.00 paid 0.00 0.00 2026-11-14 10:32:05#";
+    ok &= checkTrue("Bill.txt contains 14-field golden line", billContent.find(expectedBillLine) != std::string::npos);
+
+    std::string billDetailContent = readFileContents(billDetailPath);
+    ok &= checkTrue("BillDetail.txt contains TEA line", billDetailContent.find("000000045 TEA 350.00 2 20.00#") != std::string::npos);
+    ok &= checkTrue("BillDetail.txt contains SUGAR line", billDetailContent.find("000000045 SUGAR 180.00 1.5 0.00#") != std::string::npos);
 
     // 7. Verify stock reduction in Product.txt
     auto tea = productRepo.findByBarcode("100001");
@@ -153,6 +157,7 @@ int main() {
     std::remove(orderPath.c_str());
     std::remove(detailPath.c_str());
     std::remove(billPath.c_str());
+    std::remove(billDetailPath.c_str());
 
     if (ok) {
         std::cout << "test_pos_flow: all passed\n";

@@ -20,6 +20,7 @@ public:
 
     virtual void updateQuantity(int id, double newQuantity) = 0;
     virtual void add(const Product& product) = 0;
+    virtual void update(const Product& product) = 0;
 };
 
 #endif

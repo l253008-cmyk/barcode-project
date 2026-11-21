@@ -1,3 +1,6 @@
+// MainWindow.cpp                                      Owner: Person 1
+// Primary application window orchestrating Cashier, Manager, and Scanner interfaces.
+
 #include "pos/gui/MainWindow.hpp"
 
 #include <QHBoxLayout>
@@ -10,35 +13,51 @@
 
 #include "barcode/error.hpp"
 #include "pos/common/PosError.hpp"
+#include "pos/gui/ManagerApprovalDialog.hpp"
 #include "pos/gui/ManagerScreen.hpp"
 #include "pos/gui/OrderScreen.hpp"
 #include "pos/gui/ScanScreen.hpp"
 #include "pos/scanning/IBarcodeReader.hpp"
 #include "pos/scanning/ScanController.hpp"
+#include "pos/services/CategoryService.hpp"
 #include "pos/services/CheckoutService.hpp"
 #include "pos/services/OrderService.hpp"
 #include "pos/services/ProductService.hpp"
+#include "pos/services/ReportService.hpp"
+#include "pos/services/SeasonService.hpp"
 
-MainWindow::MainWindow(UserRole role, IFrameSource& source, ScanController& controller,
-                       IBarcodeReader& reader, ProductService& products, OrderService& orders,
-                       CheckoutService& checkout, QWidget* parent)
+MainWindow::MainWindow(UserRole role,
+                       IFrameSource& source,
+                       ScanController& controller,
+                       IBarcodeReader& reader,
+                       ProductService& products,
+                       OrderService& orders,
+                       CheckoutService& checkout,
+                       CategoryService& categories,
+                       SeasonService& seasons,
+                       ReportService& reports,
+                       const std::string& receiptsDir,
+                       const std::string& shopName,
+                       const std::string& managerPin,
+                       QWidget* parent)
     : QMainWindow(parent),
       currentRole_(role),
       source_(source),
-      controller_(controller) {
+      controller_(controller),
+      managerPin_(managerPin) {
 
     // ---------------- Header Bar ----------------
-    QWidget* headerWidget = new QWidget(this);
+    auto* headerWidget = new QWidget(this);
     headerWidget->setObjectName("headerWidget");
     headerWidget->setFixedHeight(55);
 
-    QLabel* brandLogo = new QLabel("🏪 <b>Store POS System</b> | Enterprise", headerWidget);
+    auto* brandLogo = new QLabel("🏪 <b>" + QString::fromStdString(shopName) + "</b> | Enterprise POS", headerWidget);
     brandLogo->setStyleSheet("font-size: 16px; color: #0F172A; font-weight: bold;");
 
     roleBadge_ = new QLabel(headerWidget);
     updateRoleDisplay();
 
-    QPushButton* switchRoleBtn = new QPushButton("Switch User / Role", headerWidget);
+    auto* switchRoleBtn = new QPushButton("Switch User / Role", headerWidget);
     switchRoleBtn->setCursor(Qt::PointingHandCursor);
     switchRoleBtn->setStyleSheet(
         "QPushButton { background-color: #E2E8F0; color: #1E293B; font-weight: 600; padding: 6px 14px; "
@@ -46,7 +65,7 @@ MainWindow::MainWindow(UserRole role, IFrameSource& source, ScanController& cont
         "QPushButton:hover { background-color: #CBD5E1; }");
     connect(switchRoleBtn, &QPushButton::clicked, this, &MainWindow::switchRole);
 
-    QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
+    auto* headerLayout = new QHBoxLayout(headerWidget);
     headerLayout->setContentsMargins(16, 0, 16, 0);
     headerLayout->addWidget(brandLogo);
     headerLayout->addStretch();
@@ -58,10 +77,10 @@ MainWindow::MainWindow(UserRole role, IFrameSource& source, ScanController& cont
     tabs_ = new QTabWidget(this);
     tabs_->setObjectName("mainTabs");
 
-    orderScreen_ = new OrderScreen(orders, products, checkout, this);
+    orderScreen_ = new OrderScreen(orders, products, checkout, receiptsDir, shopName, managerPin, this);
     tabs_->addTab(orderScreen_, "🛒 Cashier Terminal");
 
-    managerScreen_ = new ManagerScreen(products, reader, this);
+    managerScreen_ = new ManagerScreen(categories, products, seasons, reports, &reader, this);
     tabs_->addTab(managerScreen_, "⚙️ Manager Workstation");
 
     scanScreen_ = new ScanScreen(products, reader, this);
@@ -76,16 +95,16 @@ MainWindow::MainWindow(UserRole role, IFrameSource& source, ScanController& cont
     }
 
     // ---------------- Central Layout ----------------
-    QWidget* centralContainer = new QWidget(this);
-    QVBoxLayout* centralLayout = new QVBoxLayout(centralContainer);
+    auto* centralContainer = new QWidget(this);
+    auto* centralLayout = new QVBoxLayout(centralContainer);
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
     centralLayout->addWidget(headerWidget);
     centralLayout->addWidget(tabs_);
 
     setCentralWidget(centralContainer);
-    setWindowTitle("Store POS System");
-    resize(1150, 750);
+    setWindowTitle(QString::fromStdString(shopName));
+    resize(1200, 780);
     applyStyleSheet();
 
     // ---------------- Camera & Scanner Wiring ----------------
@@ -133,16 +152,14 @@ void MainWindow::updateRoleDisplay() {
 }
 
 void MainWindow::onTabChanged(int index) {
-    // If switching to Manager tab from Cashier, authenticate
     if (index == 1 && currentRole_ != UserRole::Manager) {
-        bool ok = false;
-        QString pin = QInputDialog::getText(this, "Manager Authorization",
-            "Enter Manager PIN (default: 1234):", QLineEdit::Password, "", &ok);
+        bool approved = ManagerApprovalDialog::requestApproval(
+            this, managerPin_, "Enter Manager PIN to access the Manager Workstation:");
 
-        if (ok && (pin.trimmed() == "1234" || pin.trimmed().isEmpty())) {
+        if (approved) {
             currentRole_ = UserRole::Manager;
             updateRoleDisplay();
-            managerScreen_->refreshInventory();
+            managerScreen_->refreshAll();
             statusBar()->showMessage("Manager access authorized.", 3000);
         } else {
             statusBar()->showMessage("Access denied: Incorrect manager PIN.", 4000);
@@ -150,7 +167,7 @@ void MainWindow::onTabChanged(int index) {
             return;
         }
     } else if (index == 1) {
-        managerScreen_->refreshInventory();
+        managerScreen_->refreshAll();
     }
 }
 
@@ -161,7 +178,7 @@ void MainWindow::switchRole() {
         updateRoleDisplay();
         if (currentRole_ == UserRole::Manager) {
             tabs_->setCurrentIndex(1);
-            managerScreen_->refreshInventory();
+            managerScreen_->refreshAll();
         } else {
             tabs_->setCurrentIndex(0);
         }

@@ -1,0 +1,5 @@
+10 Groceries GRO#
+20 Beverages BEV#
+30 Dairy DRY#
+40 Bakery BAK#
+50 PersonalCare PC#

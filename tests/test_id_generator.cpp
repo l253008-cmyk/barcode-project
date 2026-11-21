@@ -51,6 +51,9 @@ private:
 class FakeOrderRepository : public IOrderRepository {
 public:
     void add(const Order& order) override { last_ = order.id; }
+    std::optional<Order> findById(const std::string&) const override { return std::nullopt; }
+    std::vector<Order> all() const override { return {}; }
+    void update(const Order&) override {}
     std::string lastId() const override { return last_; }
     void setLast(const std::string& id) { last_ = id; }
 
@@ -61,6 +64,9 @@ private:
 class FakeBillRepository : public IBillRepository {
 public:
     void add(const Bill& bill) override { last_ = bill.id; }
+    void replace(const Bill&) override {}
+    std::optional<Bill> findByOrderId(const std::string&) const override { return std::nullopt; }
+    std::vector<Bill> all() const override { return {}; }
     std::string lastId() const override { return last_; }
     void setLast(const std::string& id) { last_ = id; }
 

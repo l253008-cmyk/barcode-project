@@ -145,3 +145,36 @@ void FileProductRepository::add(const Product& product) {
     }
 }
 
+void FileProductRepository::update(const Product& product) {
+    vector<Product> products = all();
+    bool found = false;
+    for (auto& p : products) {
+        if (p.id == product.id) {
+            p = product;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        throw PosError("Product with ID " + to_string(product.id) + " not found to update");
+    }
+
+    vector<vector<string>> records;
+    for (const auto& p : products) {
+        records.push_back(ProductCodec::format(p));
+    }
+
+    string tempPath = filePath + ".tmp";
+    writeRecords(tempPath, records);
+
+    error_code errorCode;
+    filesystem::rename(tempPath, filePath, errorCode);
+    if (errorCode) {
+        error_code ignored;
+        filesystem::remove(tempPath, ignored);
+        throw PosError("Cannot save " + filePath + ": " + errorCode.message());
+    }
+}
+
+
