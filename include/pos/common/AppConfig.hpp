@@ -29,7 +29,7 @@ namespace pos {
 		constexpr int kCameraHeight = 480;
 
 		// ---------- scanning ----------
-		constexpr int kScanIntervalMs = 250;    // try to read a frame at most once every 250 ms
+		constexpr int kScanIntervalMs = 150;    // try to read a frame at most once every 150 ms
 		constexpr int kRepeatIgnoreMs = 2000;   // after a code is reported, ignore the same code for 2 seconds
 		constexpr int kConfirmReads = 2;      // a code must be read this many times in a row to count
 

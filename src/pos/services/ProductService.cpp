@@ -52,3 +52,52 @@ void ProductService::reduceStock(const string& barcode, double quantity) {
     double newQuantity = product.availableQty - quantity;
     productRepository.updateQuantity(product.id, newQuantity);
 }
+
+vector<Product> ProductService::allProducts() const {
+    return productRepository.all();
+}
+
+int ProductService::nextProductId() const {
+    vector<Product> products = productRepository.all();
+    int maxId = 0;
+    for (const auto& p : products) {
+        if (p.id > maxId) {
+            maxId = p.id;
+        }
+    }
+    return maxId + 1;
+}
+
+void ProductService::addProduct(const Product& product) {
+    if (product.id <= 0) {
+        throw PosError("Product ID must be greater than zero");
+    }
+    if (product.barcode.empty()) {
+        throw PosError("Barcode cannot be empty");
+    }
+    if (product.acronym.empty() || product.acronym.size() > 8) {
+        throw PosError("Product acronym must be between 1 and 8 characters");
+    }
+    if (product.name.empty()) {
+        throw PosError("Product name cannot be empty");
+    }
+    if (product.availableQty < 0) {
+        throw PosError("Available quantity cannot be negative");
+    }
+    if (productRepository.findByBarcode(product.barcode).has_value()) {
+        throw PosError("Product with barcode " + product.barcode + " already exists");
+    }
+    if (productRepository.findById(product.id).has_value()) {
+        throw PosError("Product with ID " + to_string(product.id) + " already exists");
+    }
+
+    // Auto-generate the barcode image file
+    string barcodePath = product.barcodePath;
+    if (barcodePath.empty()) {
+        barcodePath = "data/barcodes/" + product.barcode + ".bmp";
+    }
+
+    Product toSave = product;
+    toSave.barcodePath = barcodePath;
+    productRepository.add(toSave);
+}

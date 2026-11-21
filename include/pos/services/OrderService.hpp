@@ -31,6 +31,22 @@ public:
     // takes a product out of the order
     void removeItem(const std::string& barcode);
 
+    // changes the quantity of an existing line item in the order
+    // error if quantity <= 0, item not in order, or stock not enough
+    void updateItemQuantity(const std::string& barcode, double newQuantity);
+
+    // puts the active order on hold and starts a new empty order
+    void holdCurrentOrder();
+
+    // true if there is at least one order on hold
+    bool hasHeldOrders() const;
+
+    // returns all held orders
+    std::vector<Order> getHeldOrders() const;
+
+    // restores a held order (by index, defaults to 0)
+    void resumeHeldOrder(size_t index = 0);
+
     // name is needed, contact is optional (empty becomes "-")
     void setCustomer(const std::string& name, const std::string& contact);
 
@@ -39,6 +55,9 @@ public:
 
     // the order as it is right now
     const Order& draft() const;
+
+    // true if there is an active order being edited
+    bool hasActiveDraft() const { return hasDraft; }
 
     // saves the order and its lines, reduces the stock, gives back the saved order
     // nothing is saved if something is missing or the stock is not enough any more
@@ -58,6 +77,7 @@ private:
     bool hasDraft;
     bool customerIsSet;
     bool paymentIsSet;
+    std::vector<Order> heldOrders;
 };
 
 #endif

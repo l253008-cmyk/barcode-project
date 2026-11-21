@@ -18,6 +18,10 @@ public:
         return money;
     }
 
+    static Money fromDouble(double amount) {
+        return fromPaisa(std::llround(amount * 100.0));
+    }
+
     // Reads text such as "350", "350.0" or "350.00" (also with a leading minus).
     // Throws PosError for anything else, so a bad record is never accepted.
     static Money parse(const std::string& text) {

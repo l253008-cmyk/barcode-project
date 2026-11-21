@@ -53,6 +53,10 @@ public:
             }
         }
     }
+
+    void add(const Product& product) override {
+        products.push_back(product);
+    }
 };
 
 class FakeOrderRepository : public IOrderRepository {
@@ -429,6 +433,71 @@ int main() {
         shop.orderService.addItem("100001", 2);
         shop.orderService.start();
         assert(shop.orderService.draft().lines.empty());
+    }
+
+    // ---------- updateItemQuantity ----------
+    {
+        Shop shop;
+        shop.orderService.start();
+        shop.orderService.addItem("100001", 2);
+        assert(shop.orderService.draft().lines[0].quantity == 2);
+
+        // increase quantity
+        shop.orderService.updateItemQuantity("100001", 5);
+        assert(shop.orderService.draft().lines[0].quantity == 5);
+
+        // decrease quantity
+        shop.orderService.updateItemQuantity("100001", 1);
+        assert(shop.orderService.draft().lines[0].quantity == 1);
+
+        // set to <= 0 throws PosError
+        bool threwZero = false;
+        try {
+            shop.orderService.updateItemQuantity("100001", 0);
+        } catch (const PosError&) {
+            threwZero = true;
+        }
+        assert(threwZero);
+
+        // exceed stock throws PosError
+        shop.orderService.addItem("100001", 1);
+        bool threwStock = false;
+        try {
+            shop.orderService.updateItemQuantity("100001", 500);
+        } catch (const PosError&) {
+            threwStock = true;
+        }
+        assert(threwStock);
+    }
+
+    // ---------- hold and resume order ----------
+    {
+        Shop shop;
+        shop.orderService.start();
+        shop.orderService.setCustomer("Held Customer", "03001234567");
+        shop.orderService.addItem("100001", 3);
+        assert(!shop.orderService.hasHeldOrders());
+
+        // Hold order
+        shop.orderService.holdCurrentOrder();
+        assert(shop.orderService.hasHeldOrders());
+        assert(shop.orderService.getHeldOrders().size() == 1);
+        assert(shop.orderService.hasActiveDraft());
+        assert(shop.orderService.draft().lines.empty());
+
+        // Start a new intermediate order
+        shop.orderService.start();
+        shop.orderService.setCustomer("New Customer", "03119876543");
+        shop.orderService.addItem("100002", 2.5);
+        assert(shop.orderService.draft().customerName == "New Customer");
+
+        // Resume the held order
+        shop.orderService.resumeHeldOrder(0);
+        assert(!shop.orderService.hasHeldOrders());
+        assert(shop.orderService.hasActiveDraft());
+        assert(shop.orderService.draft().customerName == "Held Customer");
+        assert(shop.orderService.draft().lines.size() == 1);
+        assert(shop.orderService.draft().lines[0].quantity == 3);
     }
 
     cout << "test_order_service: all passed" << endl;

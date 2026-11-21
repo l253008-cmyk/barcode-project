@@ -12,8 +12,10 @@ class ProductService;
 class OrderService;
 class CheckoutService;
 class OrderScreen;
+class ManagerScreen;
 class ScanScreen;
 class QTabWidget;
+class QLabel;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -24,13 +26,23 @@ public:
                CheckoutService& checkout, QWidget* parent = nullptr);
     ~MainWindow() override;
 
+private slots:
+    void switchRole();
+    void onTabChanged(int index);
+
 private:
     void onFrame(const Image& frame);
     void onCode(const std::string& code);
+    void updateRoleDisplay();
+    void applyStyleSheet();
 
+    UserRole currentRole_;
     IFrameSource& source_;
     ScanController& controller_;
-    QTabWidget* tabs_;
-    OrderScreen* orderScreen_;
-    ScanScreen* scanScreen_;
+
+    QLabel* roleBadge_ = nullptr;
+    QTabWidget* tabs_ = nullptr;
+    OrderScreen* orderScreen_ = nullptr;
+    ManagerScreen* managerScreen_ = nullptr;
+    ScanScreen* scanScreen_ = nullptr;
 };

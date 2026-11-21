@@ -41,6 +41,10 @@ public:
             }
         }
     }
+
+    void add(const Product& product) override {
+        products.push_back(product);
+    }
 };
 
 // the three products from the proposal
@@ -151,6 +155,28 @@ int main() {
     service.reduceStock("100001", 38);                         // sell everything
     assert(repository.findById(1).value().availableQty == 0);
     assert(!service.canSell("100001", 1));                     // sold out now
+
+    // allProducts & nextProductId
+    assert(service.allProducts().size() == 3);
+    assert(service.nextProductId() == 4);
+
+    // addProduct
+    Product newProd = { 4, "100004", "COFFEE", "Nescafe Classic", MeasurementUnit::Count,
+                        Money::parse("450.00"), Money::parse("20.00"), Money::parse("0.00"),
+                        50, "data/barcodes/100004.bmp" };
+    service.addProduct(newProd);
+    assert(service.allProducts().size() == 4);
+    assert(service.nextProductId() == 5);
+    assert(service.describeByBarcode("100004").find("COFFEE") != string::npos);
+
+    // addProduct with duplicate barcode should throw
+    bool threwDuplicate = false;
+    try {
+        service.addProduct(newProd);
+    } catch (const PosError&) {
+        threwDuplicate = true;
+    }
+    assert(threwDuplicate);
 
     cout << "test_product_service: all passed" << endl;
     return 0;

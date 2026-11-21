@@ -5,8 +5,10 @@
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QTableWidget>
 #include <QVBoxLayout>
@@ -55,13 +57,45 @@ OrderScreen::OrderScreen(OrderService& orders, ProductService& products, Checkou
     status_ = new QLabel("Scan a product to add it to the order.", this);
     status_->setWordWrap(true);
 
+    // Item manipulation buttons row
+    QPushButton* incBtn = new QPushButton("+ 1", this);
+    QPushButton* decBtn = new QPushButton("- 1", this);
+    QPushButton* editQtyBtn = new QPushButton("Edit Qty", this);
     QPushButton* descriptionButton = new QPushButton("Description", this);
     QPushButton* removeButton = new QPushButton("Remove Item", this);
-    QPushButton* billButton = new QPushButton("Generate Bill", this);
 
+    incBtn->setToolTip("Increase quantity of selected item by 1");
+    decBtn->setToolTip("Decrease quantity of selected item by 1");
+    editQtyBtn->setToolTip("Enter exact quantity for selected item");
+
+    connect(incBtn, &QPushButton::clicked, this, &OrderScreen::incrementSelected);
+    connect(decBtn, &QPushButton::clicked, this, &OrderScreen::decrementSelected);
+    connect(editQtyBtn, &QPushButton::clicked, this, &OrderScreen::editQuantitySelected);
     connect(descriptionButton, &QPushButton::clicked, this, &OrderScreen::describeSelected);
     connect(removeButton, &QPushButton::clicked, this, &OrderScreen::removeSelected);
+
+    QHBoxLayout* itemButtons = new QHBoxLayout();
+    itemButtons->addWidget(incBtn);
+    itemButtons->addWidget(decBtn);
+    itemButtons->addWidget(editQtyBtn);
+    itemButtons->addWidget(descriptionButton);
+    itemButtons->addWidget(removeButton);
+
+    // Order action buttons row
+    holdButton_ = new QPushButton("Hold Order", this);
+    resumeButton_ = new QPushButton("Resume Held Order (0)", this);
+    resumeButton_->setEnabled(false);
+    QPushButton* billButton = new QPushButton("Generate Bill", this);
+    billButton->setStyleSheet("background-color: #10B981; color: white; font-weight: bold; padding: 8px; border-radius: 4px;");
+
+    connect(holdButton_, &QPushButton::clicked, this, &OrderScreen::holdOrder);
+    connect(resumeButton_, &QPushButton::clicked, this, &OrderScreen::resumeOrder);
     connect(billButton, &QPushButton::clicked, this, &OrderScreen::generateBill);
+
+    QHBoxLayout* orderButtons = new QHBoxLayout();
+    orderButtons->addWidget(holdButton_);
+    orderButtons->addWidget(resumeButton_);
+    orderButtons->addWidget(billButton);
 
     QFormLayout* quantityForm = new QFormLayout();
     quantityForm->addRow("Quantity per scan:", quantity_);
@@ -77,15 +111,11 @@ OrderScreen::OrderScreen(OrderService& orders, ProductService& products, Checkou
     customerForm->addRow("Payment mode:", paymentCombo_);
     customerForm->addRow("Merchant:", merchantEdit_);
 
-    QHBoxLayout* buttons = new QHBoxLayout();
-    buttons->addWidget(descriptionButton);
-    buttons->addWidget(removeButton);
-    buttons->addWidget(billButton);
-
     QVBoxLayout* right = new QVBoxLayout();
     right->addWidget(table_, 1);
+    right->addLayout(itemButtons);
     right->addLayout(customerForm);
-    right->addLayout(buttons);
+    right->addLayout(orderButtons);
     right->addWidget(status_);
 
     QHBoxLayout* layout = new QHBoxLayout(this);
@@ -94,6 +124,7 @@ OrderScreen::OrderScreen(OrderService& orders, ProductService& products, Checkou
 
     orders_.start();
     refreshTable();
+    updateHoldButtonState();
 }
 
 void OrderScreen::showFrame(const Image& frame) {
@@ -153,6 +184,149 @@ void OrderScreen::removeSelected() {
     }
 }
 
+void OrderScreen::incrementSelected() {
+    std::string barcode = selectedBarcode();
+    if (barcode.empty()) {
+        setStatus("Select an item in the table to increase quantity.", true);
+        return;
+    }
+
+    const auto& lines = orders_.draft().lines;
+    for (const auto& line : lines) {
+        if (line.barcode == barcode) {
+            try {
+                orders_.updateItemQuantity(barcode, line.quantity + 1.0);
+                refreshTable();
+                setStatus("Updated quantity for " + QString::fromStdString(line.acronym) + " to " + QString::number(line.quantity + 1.0), false);
+            } catch (const PosError& e) {
+                setStatus(QString::fromUtf8(e.what()), true);
+            }
+            return;
+        }
+    }
+}
+
+void OrderScreen::decrementSelected() {
+    std::string barcode = selectedBarcode();
+    if (barcode.empty()) {
+        setStatus("Select an item in the table to decrease quantity.", true);
+        return;
+    }
+
+    const auto& lines = orders_.draft().lines;
+    for (const auto& line : lines) {
+        if (line.barcode == barcode) {
+            if (line.quantity > 1.0) {
+                try {
+                    orders_.updateItemQuantity(barcode, line.quantity - 1.0);
+                    refreshTable();
+                    setStatus("Updated quantity for " + QString::fromStdString(line.acronym) + " to " + QString::number(line.quantity - 1.0), false);
+                } catch (const PosError& e) {
+                    setStatus(QString::fromUtf8(e.what()), true);
+                }
+            } else {
+                removeSelected();
+            }
+            return;
+        }
+    }
+}
+
+void OrderScreen::editQuantitySelected() {
+    std::string barcode = selectedBarcode();
+    if (barcode.empty()) {
+        setStatus("Select an item in the table to edit quantity.", true);
+        return;
+    }
+
+    double currentQty = 1.0;
+    QString acronym = QString::fromStdString(barcode);
+    for (const auto& line : orders_.draft().lines) {
+        if (line.barcode == barcode) {
+            currentQty = line.quantity;
+            acronym = QString::fromStdString(line.acronym);
+            break;
+        }
+    }
+
+    bool ok = false;
+    double newQty = QInputDialog::getDouble(this, "Edit Quantity",
+        QString("Enter new quantity for %1:").arg(acronym),
+        currentQty, 0.01, 99999.0, 2, &ok);
+
+    if (ok && newQty > 0) {
+        try {
+            orders_.updateItemQuantity(barcode, newQty);
+            refreshTable();
+            setStatus(QString("Updated quantity for %1 to %2").arg(acronym).arg(newQty), false);
+        } catch (const PosError& e) {
+            setStatus(QString::fromUtf8(e.what()), true);
+        }
+    }
+}
+
+void OrderScreen::holdOrder() {
+    if (orders_.draft().lines.empty()) {
+        setStatus("Cannot hold an empty order.", true);
+        return;
+    }
+
+    try {
+        orders_.holdCurrentOrder();
+        clearForm();
+        refreshTable();
+        updateHoldButtonState();
+        setStatus("Order put on hold. Ready for the next customer.", false);
+    } catch (const PosError& e) {
+        setStatus(QString::fromUtf8(e.what()), true);
+    }
+}
+
+void OrderScreen::resumeOrder() {
+    if (!orders_.hasHeldOrders()) {
+        setStatus("No held orders to resume.", true);
+        return;
+    }
+
+    if (!orders_.draft().lines.empty()) {
+        QMessageBox::StandardButton reply = QMessageBox::question(this, "Active Order in Progress",
+            "An order is currently in progress. Do you want to hold the current order before resuming the previous one?",
+            QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+        if (reply == QMessageBox::Yes) {
+            try {
+                orders_.holdCurrentOrder();
+            } catch (const PosError& e) {
+                setStatus(QString::fromUtf8(e.what()), true);
+                return;
+            }
+        } else if (reply == QMessageBox::Cancel) {
+            return;
+        }
+    }
+
+    try {
+        orders_.resumeHeldOrder(0);
+        customerEdit_->setText(QString::fromStdString(orders_.draft().customerName));
+        contactEdit_->setText(QString::fromStdString(orders_.draft().contact == "-" ? "" : orders_.draft().contact));
+        refreshTable();
+        updateHoldButtonState();
+        setStatus("Resumed held order.", false);
+    } catch (const PosError& e) {
+        setStatus(QString::fromUtf8(e.what()), true);
+    }
+}
+
+void OrderScreen::updateHoldButtonState() {
+    if (resumeButton_) {
+        bool hasHeld = orders_.hasHeldOrders();
+        size_t count = orders_.getHeldOrders().size();
+        resumeButton_->setEnabled(hasHeld);
+        resumeButton_->setText(QString("Resume Held Order (%1)").arg(count));
+    }
+}
+
+
 void OrderScreen::generateBill() {
     if (orders_.draft().lines.empty()) {
         setStatus("Scan at least one product before generating a bill.", true);
@@ -185,6 +359,7 @@ void OrderScreen::generateBill() {
         orders_.start();
         clearForm();
         refreshTable();
+        updateHoldButtonState();
         setStatus("Bill generated. Ready for the next customer.", false);
     } catch (const PosError& error) {
         setStatus(QString::fromUtf8(error.what()), true);

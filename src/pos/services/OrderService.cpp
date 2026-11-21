@@ -129,6 +129,69 @@ void OrderService::removeItem(const string& barcode) {
     draftOrder.lines.erase(draftOrder.lines.begin() + lineIndex);
 }
 
+void OrderService::updateItemQuantity(const string& barcode, double newQuantity) {
+    requireDraft();
+
+    if (!(newQuantity > 0)) {
+        throw PosError("Quantity must be more than zero");
+    }
+
+    int lineIndex = findLineIndex(draftOrder, barcode);
+    if (lineIndex < 0) {
+        throw PosError("This product is not in the order: " + barcode);
+    }
+
+    optional<Product> found = productRepository.findByBarcode(barcode);
+    if (!found.has_value()) {
+        throw PosError("Product not found for barcode: " + barcode);
+    }
+
+    if (!productService.canSell(barcode, newQuantity)) {
+        throw PosError("Cannot set quantity to " + quantityToText(newQuantity) +
+            " (available stock: " + quantityToText(found->availableQty) + ")");
+    }
+
+    draftOrder.lines[lineIndex].quantity = newQuantity;
+}
+
+void OrderService::holdCurrentOrder() {
+    requireDraft();
+    if (draftOrder.lines.empty()) {
+        throw PosError("Cannot hold an empty order");
+    }
+
+    draftOrder.status = OrderStatus::OnHold;
+    heldOrders.push_back(draftOrder);
+
+    start();
+}
+
+bool OrderService::hasHeldOrders() const {
+    return !heldOrders.empty();
+}
+
+vector<Order> OrderService::getHeldOrders() const {
+    return heldOrders;
+}
+
+void OrderService::resumeHeldOrder(size_t index) {
+    if (heldOrders.empty()) {
+        throw PosError("No orders are on hold");
+    }
+    if (index >= heldOrders.size()) {
+        throw PosError("Invalid held order index");
+    }
+
+    draftOrder = heldOrders[index];
+    draftOrder.status = OrderStatus::InProgress;
+    hasDraft = true;
+    customerIsSet = !draftOrder.customerName.empty();
+    paymentIsSet = false;
+
+    heldOrders.erase(heldOrders.begin() + index);
+}
+
+
 void OrderService::setCustomer(const string& name, const string& contact) {
     requireDraft();
 

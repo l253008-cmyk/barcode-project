@@ -20,6 +20,15 @@ public:
     // takes the sold quantity out of the stock, error if it is not allowed
     void reduceStock(const std::string& barcode, double quantity);
 
+    // Returns all products in the catalog
+    std::vector<Product> allProducts() const;
+
+    // Suggests the next available product ID
+    int nextProductId() const;
+
+    // Adds a new product: validates fields, generates barcode BMP file, and saves
+    void addProduct(const Product& product);
+
 private:
     IProductRepository& productRepository;
     const StockPolicy& stockPolicy;

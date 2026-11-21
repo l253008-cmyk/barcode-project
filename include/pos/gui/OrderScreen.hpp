@@ -16,6 +16,7 @@ class QLineEdit;
 class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
+class QPushButton;
 
 class OrderScreen : public QWidget {
     Q_OBJECT
@@ -30,9 +31,15 @@ public:
 private slots:
     void describeSelected();
     void removeSelected();
+    void incrementSelected();
+    void decrementSelected();
+    void editQuantitySelected();
+    void holdOrder();
+    void resumeOrder();
     void generateBill();
 
 private:
+    void updateHoldButtonState();
     void refreshTable();
     void clearForm();
     void setStatus(const QString& text, bool isError);
@@ -51,5 +58,7 @@ private:
     QComboBox* paymentCombo_;
     QLineEdit* merchantEdit_;
     QLabel* status_;
+    QPushButton* holdButton_ = nullptr;
+    QPushButton* resumeButton_ = nullptr;
     std::string lastCode_;
 };
