@@ -16,7 +16,10 @@ ProductDetailsWidget::ProductDetailsWidget(QWidget* parent)
     for (int i = 0; i < kFieldCount; ++i) {
         values_[i] = new QLabel("-", this);
         values_[i]->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        form->addRow(QString(names[i]) + ":", values_[i]);
+        values_[i]->setStyleSheet("color: #0F172A; font-weight: bold; font-size: 13px;");
+        QLabel* label = new QLabel(QString(names[i]) + ":", this);
+        label->setStyleSheet("color: #334155; font-weight: 600; font-size: 13px;");
+        form->addRow(label, values_[i]);
     }
 
     QVBoxLayout* layout = new QVBoxLayout(this);

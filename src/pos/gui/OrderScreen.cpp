@@ -58,15 +58,42 @@ OrderScreen::OrderScreen(OrderService& orders, ProductService& products, Checkou
     status_->setWordWrap(true);
 
     // Item manipulation buttons row
-    QPushButton* incBtn = new QPushButton("+ 1", this);
-    QPushButton* decBtn = new QPushButton("- 1", this);
-    QPushButton* editQtyBtn = new QPushButton("Edit Qty", this);
-    QPushButton* descriptionButton = new QPushButton("Description", this);
-    QPushButton* removeButton = new QPushButton("Remove Item", this);
+    QPushButton* incBtn = new QPushButton("➕ 1", this);
+    QPushButton* decBtn = new QPushButton("➖ 1", this);
+    QPushButton* editQtyBtn = new QPushButton("✏️ Edit Qty", this);
+    QPushButton* descriptionButton = new QPushButton("ℹ️ Description", this);
+    QPushButton* removeButton = new QPushButton("🗑️ Remove Item", this);
 
     incBtn->setToolTip("Increase quantity of selected item by 1");
     decBtn->setToolTip("Decrease quantity of selected item by 1");
     editQtyBtn->setToolTip("Enter exact quantity for selected item");
+
+    incBtn->setStyleSheet(
+        "QPushButton { background-color: #EFF6FF; color: #1D4ED8; font-weight: bold; font-size: 13px; "
+        "border: 2px solid #3B82F6; border-radius: 6px; padding: 7px 14px; } "
+        "QPushButton:hover { background-color: #DBEAFE; } "
+        "QPushButton:pressed { background-color: #BFDBFE; }");
+
+    decBtn->setStyleSheet(
+        "QPushButton { background-color: #FEF2F2; color: #B91C1C; font-weight: bold; font-size: 13px; "
+        "border: 2px solid #EF4444; border-radius: 6px; padding: 7px 14px; } "
+        "QPushButton:hover { background-color: #FEE2E2; } "
+        "QPushButton:pressed { background-color: #FECACA; }");
+
+    editQtyBtn->setStyleSheet(
+        "QPushButton { background-color: #F8FAFC; color: #0F172A; font-weight: bold; font-size: 13px; "
+        "border: 2px solid #64748B; border-radius: 6px; padding: 7px 14px; } "
+        "QPushButton:hover { background-color: #E2E8F0; }");
+
+    descriptionButton->setStyleSheet(
+        "QPushButton { background-color: #F1F5F9; color: #0F172A; font-weight: 600; font-size: 13px; "
+        "border: 1.5px solid #94A3B8; border-radius: 6px; padding: 7px 12px; } "
+        "QPushButton:hover { background-color: #E2E8F0; }");
+
+    removeButton->setStyleSheet(
+        "QPushButton { background-color: #DC2626; color: #FFFFFF; font-weight: bold; font-size: 13px; "
+        "border: 1.5px solid #B91C1C; border-radius: 6px; padding: 7px 14px; } "
+        "QPushButton:hover { background-color: #B91C1C; }");
 
     connect(incBtn, &QPushButton::clicked, this, &OrderScreen::incrementSelected);
     connect(decBtn, &QPushButton::clicked, this, &OrderScreen::decrementSelected);
@@ -82,11 +109,26 @@ OrderScreen::OrderScreen(OrderService& orders, ProductService& products, Checkou
     itemButtons->addWidget(removeButton);
 
     // Order action buttons row
-    holdButton_ = new QPushButton("Hold Order", this);
-    resumeButton_ = new QPushButton("Resume Held Order (0)", this);
+    holdButton_ = new QPushButton("⏸️ Hold Order", this);
+    resumeButton_ = new QPushButton("▶️ Resume Held Order (0)", this);
     resumeButton_->setEnabled(false);
-    QPushButton* billButton = new QPushButton("Generate Bill", this);
-    billButton->setStyleSheet("background-color: #10B981; color: white; font-weight: bold; padding: 8px; border-radius: 4px;");
+    QPushButton* billButton = new QPushButton("🧾 Generate Bill", this);
+
+    holdButton_->setStyleSheet(
+        "QPushButton { background-color: #D97706; color: #FFFFFF; font-weight: bold; font-size: 13px; "
+        "padding: 8px 14px; border-radius: 6px; border: none; } "
+        "QPushButton:hover { background-color: #B45309; }");
+
+    resumeButton_->setStyleSheet(
+        "QPushButton { background-color: #4F46E5; color: #FFFFFF; font-weight: bold; font-size: 13px; "
+        "padding: 8px 14px; border-radius: 6px; border: none; } "
+        "QPushButton:hover { background-color: #4338CA; } "
+        "QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; border: 1px solid #CBD5E1; }");
+
+    billButton->setStyleSheet(
+        "QPushButton { background-color: #10B981; color: white; font-weight: bold; font-size: 13px; "
+        "padding: 8px 16px; border-radius: 6px; border: none; } "
+        "QPushButton:hover { background-color: #059669; }");
 
     connect(holdButton_, &QPushButton::clicked, this, &OrderScreen::holdOrder);
     connect(resumeButton_, &QPushButton::clicked, this, &OrderScreen::resumeOrder);

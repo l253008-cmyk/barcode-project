@@ -85,8 +85,14 @@ void ManagerScreen::setupUi() {
     quantitySpinBox_->setValue(10.0);
 
     addButton_ = new QPushButton("Add Product & Generate Barcode", this);
-    addButton_->setStyleSheet("background-color: #2563EB; color: white; font-weight: bold; padding: 8px; border-radius: 4px;");
+    addButton_->setStyleSheet("background-color: #2563EB; color: white; font-weight: bold; padding: 10px; border-radius: 5px; border: none; font-size: 13px;");
     connect(addButton_, &QPushButton::clicked, this, &ManagerScreen::onAddProductClicked);
+
+    scanCaptureBtn_->setStyleSheet(
+        "QPushButton { background-color: #EFF6FF; color: #1D4ED8; font-weight: bold; "
+        "border: 1.5px solid #3B82F6; border-radius: 5px; padding: 6px 12px; font-size: 12px; } "
+        "QPushButton:hover { background-color: #DBEAFE; } "
+        "QPushButton:checked { background-color: #2563EB; color: #FFFFFF; }");
 
     statusLabel_ = new QLabel(this);
     statusLabel_->setWordWrap(true);
@@ -105,10 +111,31 @@ void ManagerScreen::setupUi() {
     formLayout->addRow(addButton_);
     formLayout->addRow(statusLabel_);
 
+    QString inputStyle = 
+        "QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox { "
+        "border: 1.5px solid #94A3B8; border-radius: 5px; padding: 6px 8px; "
+        "background-color: #FFFFFF; color: #000000; font-size: 13px; font-weight: 500; } "
+        "QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus, QSpinBox:focus { "
+        "border: 2px solid #2563EB; color: #000000; } "
+        "QLineEdit::placeholder { color: #64748B; font-weight: normal; }";
+
+    addGroup->setStyleSheet(
+        "QGroupBox { font-weight: bold; font-size: 14px; color: #0F172A; border: 1.5px solid #CBD5E1; "
+        "border-radius: 8px; margin-top: 14px; padding-top: 16px; background-color: #FFFFFF; } "
+        "QGroupBox::title { subcontrol-origin: margin; left: 14px; padding: 0 8px; color: #0F172A; background-color: #FFFFFF; } "
+        "QLabel { color: #0F172A; font-weight: bold; font-size: 13px; } " + inputStyle
+    );
+
     addGroup->setLayout(formLayout);
 
     // ---------------- Right Panel: Inventory Catalog ----------------
     QGroupBox* catalogGroup = new QGroupBox("Current Inventory Catalog", this);
+    catalogGroup->setStyleSheet(
+        "QGroupBox { font-weight: bold; font-size: 14px; color: #0F172A; border: 1.5px solid #CBD5E1; "
+        "border-radius: 8px; margin-top: 14px; padding-top: 16px; background-color: #FFFFFF; } "
+        "QGroupBox::title { subcontrol-origin: margin; left: 14px; padding: 0 8px; color: #0F172A; background-color: #FFFFFF; } "
+        "QLabel { color: #0F172A; font-weight: bold; font-size: 13px; } " + inputStyle
+    );
 
     searchEdit_ = new QLineEdit(this);
     searchEdit_->setPlaceholderText("Search by barcode, acronym, or name...");
@@ -116,6 +143,10 @@ void ManagerScreen::setupUi() {
     connect(searchEdit_, &QLineEdit::textChanged, this, &ManagerScreen::onSearchChanged);
 
     refreshButton_ = new QPushButton("Refresh", this);
+    refreshButton_->setStyleSheet(
+        "QPushButton { background-color: #F1F5F9; color: #0F172A; font-weight: bold; font-size: 13px; "
+        "border: 1.5px solid #94A3B8; border-radius: 5px; padding: 6px 14px; } "
+        "QPushButton:hover { background-color: #E2E8F0; }");
     connect(refreshButton_, &QPushButton::clicked, this, &ManagerScreen::refreshInventory);
 
     QHBoxLayout* searchLayout = new QHBoxLayout();

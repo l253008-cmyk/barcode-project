@@ -23,6 +23,23 @@
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    app.setStyle("Fusion");
+
+    QPalette palette;
+    palette.setColor(QPalette::Window, QColor("#F8FAFC"));
+    palette.setColor(QPalette::WindowText, QColor("#0F172A"));
+    palette.setColor(QPalette::Base, Qt::white);
+    palette.setColor(QPalette::AlternateBase, QColor("#F1F5F9"));
+    palette.setColor(QPalette::ToolTipBase, Qt::white);
+    palette.setColor(QPalette::ToolTipText, QColor("#0F172A"));
+    palette.setColor(QPalette::Text, QColor("#0F172A"));
+    palette.setColor(QPalette::Button, QColor("#F1F5F9"));
+    palette.setColor(QPalette::ButtonText, QColor("#0F172A"));
+    palette.setColor(QPalette::BrightText, Qt::red);
+    palette.setColor(QPalette::Highlight, QColor("#2563EB"));
+    palette.setColor(QPalette::HighlightedText, Qt::white);
+    palette.setColor(QPalette::PlaceholderText, QColor("#64748B"));
+    app.setPalette(palette);
 
     // 1. Role chooser dialog
     RoleDialog roleDialog;
