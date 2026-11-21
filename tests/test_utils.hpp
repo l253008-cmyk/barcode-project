@@ -33,4 +33,20 @@ inline bool checkThrows(const std::string& testName, Function function) {
     std::cout << testName << " failed!" << std::endl;
     return false;
 }
+template <typename ExceptionType, typename Function>
+inline bool checkThrowsAs(const std::string& testName, Function function) {
+    try {
+        function();
+    }
+    catch (const ExceptionType&) {
+        std::cout << testName << " passed!" << std::endl;
+        return true;
+    }
+    catch (...) {
+        std::cout << testName << " failed! Wrong exception type." << std::endl;
+        return false;
+    }
+    std::cout << testName << " failed! No exception was thrown." << std::endl;
+    return false;
+}
 #endif
