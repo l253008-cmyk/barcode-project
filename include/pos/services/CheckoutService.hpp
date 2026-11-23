@@ -27,6 +27,9 @@ public:
     // Overload taking payment details and discounts
     Bill checkout(double specialPercent, Money amountReceived);
 
+    // Calculates and previews a bill without finalizing the order or saving to database
+    Bill previewBill(const Order& order, double specialPercent, Money amountReceived = Money()) const;
+
 private:
     OrderService& orders_;
     BillingService& billing_;

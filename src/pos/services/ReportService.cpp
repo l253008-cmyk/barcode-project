@@ -209,18 +209,22 @@ ReportTable ReportService::top10MostSoldItems() const {
     size_t count = std::min(size_t(10), sorted.size());
     for (size_t i = 0; i < count; ++i) {
         const auto& item = sorted[i];
-        std::string name = item.acronym;
+        std::string acronym = item.acronym;
+        std::string name = "Unknown";
         std::string remaining = "N/A";
 
         auto optProduct = m_products.findByBarcode(item.barcode);
         if (optProduct.has_value()) {
+            if (!optProduct->acronym.empty()) {
+                acronym = optProduct->acronym;
+            }
             name = optProduct->name;
             remaining = formatQty(optProduct->availableQty);
         }
 
         table.rows.push_back({
             std::to_string(i + 1),
-            item.acronym,
+            acronym,
             name,
             formatQty(item.qtySold),
             remaining

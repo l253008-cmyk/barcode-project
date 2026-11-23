@@ -34,33 +34,38 @@ std::string PdfReceiptPrinter::printReceipt(const Bill& bill,
         throw PosError("Failed to initialize PDF painter for: " + fullPath.toStdString());
     }
 
-    // A5 page geometry at 300 DPI: ~1748 x ~2480 pixels
-    const int marginX = 140;
-    const int pageWidth = 1748;
+    const int marginX = 120;
+    const int marginY = 100;
+    const int pageWidth = pdfWriter.width();
+    const int pageHeight = pdfWriter.height();
     const int contentWidth = pageWidth - (2 * marginX);
 
-    // Standard receipt font with comfortable point size and generous line height
-    QFont monoFont("Courier New", 13);
+    // Standard receipt font with comfortable point size and painter-device metrics
+    QFont monoFont("Courier New", 10);
     monoFont.setStyleHint(QFont::Monospace);
-    monoFont.setWeight(QFont::Medium);
     painter.setFont(monoFont);
 
-    QFontMetrics fm(monoFont);
-    const int lineHeight = static_cast<int>(fm.height() * 1.75); // Generous vertical spacing
-
-    int y = 140; // Top margin
+    // Initial baseline position
+    int y = marginY + painter.fontMetrics().ascent();
 
     auto lines = ReceiptFormatter::lines(bill, shopName);
     for (const auto& line : lines) {
         QString qLine = QString::fromStdString(line).trimmed();
 
-        // If line is a separator like "==================" or "------------------"
+        // Prevent page overflow
+        if (y + painter.fontMetrics().lineSpacing() + 30 > pageHeight - marginY) {
+            pdfWriter.newPage();
+            painter.setFont(monoFont);
+            y = marginY + painter.fontMetrics().ascent();
+        }
+
+        // Horizontal divider rules
         if (qLine.startsWith("==") || qLine.startsWith("--")) {
-            y += 8;
-            QPen pen(QColor("#64748b"), 3, Qt::SolidLine);
+            int lineY = y - (painter.fontMetrics().ascent() / 2);
+            QPen pen(QColor("#64748b"), qLine.startsWith("==") ? 3 : 2, Qt::SolidLine);
             painter.setPen(pen);
-            painter.drawLine(marginX, y, marginX + contentWidth, y);
-            y += 24;
+            painter.drawLine(marginX, lineY, marginX + contentWidth, lineY);
+            y += (painter.fontMetrics().lineSpacing() / 2) + 10;
             continue;
         }
 
@@ -70,45 +75,43 @@ std::string PdfReceiptPrinter::printReceipt(const Bill& bill,
         bool isTotal = (line.find("TOTAL PAYABLE") != std::string::npos);
 
         if (isStoreName) {
-            QFont titleFont("Courier New", 16, QFont::Bold);
+            QFont titleFont("Courier New", 14, QFont::Bold);
             painter.setFont(titleFont);
             painter.setPen(QColor("#0f172a"));
-            QFontMetrics tfm(titleFont);
-            int textWidth = tfm.horizontalAdvance(qLine);
+            int textWidth = painter.fontMetrics().horizontalAdvance(qLine);
             int centerX = marginX + (contentWidth - textWidth) / 2;
             painter.drawText(centerX, y, qLine);
             painter.setFont(monoFont);
-            y += static_cast<int>(lineHeight * 1.2);
+            y += painter.fontMetrics().lineSpacing() + 16;
             continue;
         }
 
         if (isThankYou) {
-            QFont thankFont("Courier New", 14, QFont::Bold);
+            QFont thankFont("Courier New", 12, QFont::Bold);
             painter.setFont(thankFont);
             painter.setPen(QColor("#1e40af"));
-            QFontMetrics yfm(thankFont);
-            int textWidth = yfm.horizontalAdvance(qLine);
+            int textWidth = painter.fontMetrics().horizontalAdvance(qLine);
             int centerX = marginX + (contentWidth - textWidth) / 2;
             painter.drawText(centerX, y, qLine);
             painter.setFont(monoFont);
-            y += lineHeight;
+            y += painter.fontMetrics().lineSpacing() + 12;
             continue;
         }
 
         if (isTotal) {
-            QFont totalFont("Courier New", 14, QFont::Bold);
+            QFont totalFont("Courier New", 11, QFont::Bold);
             painter.setFont(totalFont);
             painter.setPen(QColor("#0f172a"));
             painter.drawText(marginX, y, QString::fromStdString(line));
             painter.setFont(monoFont);
-            y += static_cast<int>(lineHeight * 1.15);
+            y += painter.fontMetrics().lineSpacing() + 10;
             continue;
         }
 
-        // Regular line
+        // Regular receipt line
         painter.setPen(QColor("#0f172a"));
         painter.drawText(marginX, y, QString::fromStdString(line));
-        y += lineHeight;
+        y += painter.fontMetrics().lineSpacing() + 8;
     }
 
     painter.end();

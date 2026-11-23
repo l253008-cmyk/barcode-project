@@ -54,9 +54,9 @@ private slots:
     void decrementSelected();
     void editQuantitySelected();
     void onPaymentInputsChanged();
+    void addManualBarcode();
 
 private:
-    void setupShortcuts();
     void updateHoldButtonState();
     void refreshTable();
     void clearForm();
@@ -72,6 +72,7 @@ private:
     std::string managerPin_;
 
     CameraView* camera_ = nullptr;
+    QLineEdit* manualBarcodeInput_ = nullptr;
     ProductDetailsWidget* details_ = nullptr;
     QTableWidget* table_ = nullptr;
     QDoubleSpinBox* quantity_ = nullptr;
@@ -89,6 +90,8 @@ private:
     QPushButton* billButton_ = nullptr;
 
     // Payment & discount inputs
+    QLabel* totalTaxLabel_ = nullptr;
+    QLabel* totalDiscountLabel_ = nullptr;
     QDoubleSpinBox* specialDiscountSpin_ = nullptr;
     QDoubleSpinBox* amountReceivedSpin_ = nullptr;
     QLabel* payableAmountLabel_ = nullptr;

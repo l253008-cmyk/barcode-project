@@ -2,10 +2,13 @@
 // Manager UI tab for viewing 6 managerial business reports.
 
 #include "pos/gui/ReportsTab.hpp"
+#include "pos/common/DateUtils.hpp"
+#include "pos/common/PosError.hpp"
 
 #include <QDate>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QMessageBox>
 #include <QVBoxLayout>
 
 ReportsTab::ReportsTab(ReportService& reportService, QWidget* parent)
@@ -114,9 +117,41 @@ void ReportsTab::onGenerateReport() {
             rep = reportService_.completedOrders();
             break;
         case 2: {
-            std::string start = startDateEdit_->text().trimmed().toStdString();
-            std::string end = endDateEdit_->text().trimmed().toStdString();
-            rep = reportService_.cashSalesByPeriod(start, end);
+            QString startStr = startDateEdit_->text().trimmed();
+            QString endStr = endDateEdit_->text().trimmed();
+
+            if (startStr.isEmpty() || endStr.isEmpty()) {
+                QMessageBox::warning(this, "Missing Dates", "Both Start Date and End Date are required for period report.");
+                return;
+            }
+
+            std::string start = startStr.toStdString();
+            std::string end = endStr.toStdString();
+
+            if (!pos::DateUtils::isValidDate(start)) {
+                QMessageBox::warning(this, "Invalid Start Date",
+                    QString("Start Date '%1' is invalid.\nExpected valid calendar date in YYYY-MM-DD format (e.g. 2026-11-23).").arg(startStr));
+                return;
+            }
+
+            if (!pos::DateUtils::isValidDate(end)) {
+                QMessageBox::warning(this, "Invalid End Date",
+                    QString("End Date '%1' is invalid.\nExpected valid calendar date in YYYY-MM-DD format (e.g. 2026-12-31).").arg(endStr));
+                return;
+            }
+
+            if (end < start) {
+                QMessageBox::warning(this, "Invalid Date Range",
+                    QString("End Date '%1' cannot precede Start Date '%2'.").arg(endStr, startStr));
+                return;
+            }
+
+            try {
+                rep = reportService_.cashSalesByPeriod(start, end);
+            } catch (const PosError& e) {
+                QMessageBox::warning(this, "Report Error", QString::fromStdString(e.what()));
+                return;
+            }
             break;
         }
         case 3:

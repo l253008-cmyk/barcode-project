@@ -53,3 +53,23 @@ Bill CheckoutService::checkout(double specialPercent, Money amountReceived) {
 
     return bill;
 }
+
+Bill CheckoutService::previewBill(const Order& order, double specialPercent, Money amountReceived) const {
+    double seasonPercent = 0.0;
+    if (seasons_) {
+        auto opt = seasons_->percentFor(order.date);
+        if (opt.has_value()) {
+            seasonPercent = *opt;
+        }
+    }
+
+    BillInputs inputs;
+    inputs.billId = "PREVIEW";
+    inputs.date = order.date;
+    inputs.time = order.time;
+    inputs.seasonPercent = seasonPercent;
+    inputs.specialPercent = specialPercent;
+    inputs.amountReceived = amountReceived;
+
+    return billing_.createBill(order, inputs);
+}

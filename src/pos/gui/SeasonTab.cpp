@@ -2,12 +2,14 @@
 // Manager UI tab for configuring seasonal discounts (Seasons.txt).
 
 #include "pos/gui/SeasonTab.hpp"
+#include "pos/common/DateUtils.hpp"
 #include "pos/common/PosError.hpp"
 
 #include <QDate>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QMessageBox>
 #include <QVBoxLayout>
 
 SeasonTab::SeasonTab(SeasonService& seasonService, QWidget* parent)
@@ -91,6 +93,8 @@ void SeasonTab::refresh() {
     auto seasons = seasonService_.all();
     table_->setRowCount(static_cast<int>(seasons.size()));
 
+    std::string today = QDate::currentDate().toString("yyyy-MM-dd").toStdString();
+
     for (int i = 0; i < static_cast<int>(seasons.size()); ++i) {
         const auto& s = seasons[i];
 
@@ -106,9 +110,25 @@ void SeasonTab::refresh() {
         pItem->setTextAlignment(Qt::AlignCenter);
         table_->setItem(i, 2, pItem);
 
-        auto* stItem = new QTableWidgetItem(s.active ? "Active" : "Inactive");
+        QString statusText;
+        QColor statusColor;
+        if (!s.active) {
+            statusText = "Disabled";
+            statusColor = QColor("#64748b");
+        } else if (today < s.startDate) {
+            statusText = "⏳ Auto on " + QString::fromStdString(s.startDate);
+            statusColor = QColor("#d97706");
+        } else if (today > s.endDate) {
+            statusText = "Expired";
+            statusColor = QColor("#94a3b8");
+        } else {
+            statusText = "🟢 Active Now";
+            statusColor = QColor("#16a34a");
+        }
+
+        auto* stItem = new QTableWidgetItem(statusText);
         stItem->setTextAlignment(Qt::AlignCenter);
-        stItem->setForeground(s.active ? QColor("#16a34a") : QColor("#dc2626"));
+        stItem->setForeground(statusColor);
         table_->setItem(i, 3, stItem);
 
         auto* toggleBtn = new QPushButton(s.active ? "Deactivate" : "Activate", this);
@@ -125,18 +145,63 @@ void SeasonTab::refresh() {
 }
 
 void SeasonTab::onAddSeason() {
-    std::string start = startDateEdit_->text().trimmed().toStdString();
-    std::string end = endDateEdit_->text().trimmed().toStdString();
+    QString startStr = startDateEdit_->text().trimmed();
+    QString endStr = endDateEdit_->text().trimmed();
     double percent = percentSpin_->value();
 
+    if (startStr.isEmpty() || endStr.isEmpty()) {
+        QMessageBox::warning(this, "Missing Dates", "Both Start Date and End Date are required.");
+        statusLabel_->setText("Error: Start and End dates cannot be empty.");
+        statusLabel_->setStyleSheet("color: #dc2626; font-weight: bold;");
+        statusLabel_->setVisible(true);
+        return;
+    }
+
+    std::string start = startStr.toStdString();
+    std::string end = endStr.toStdString();
+
+    if (!pos::DateUtils::isValidDate(start)) {
+        QMessageBox::warning(this, "Invalid Start Date",
+            QString("Start Date '%1' is invalid.\nExpected valid calendar date in YYYY-MM-DD format (e.g. 2026-11-23).").arg(startStr));
+        statusLabel_->setText("Error: Invalid Start Date format or calendar day.");
+        statusLabel_->setStyleSheet("color: #dc2626; font-weight: bold;");
+        statusLabel_->setVisible(true);
+        return;
+    }
+
+    if (!pos::DateUtils::isValidDate(end)) {
+        QMessageBox::warning(this, "Invalid End Date",
+            QString("End Date '%1' is invalid.\nExpected valid calendar date in YYYY-MM-DD format (e.g. 2026-12-31).").arg(endStr));
+        statusLabel_->setText("Error: Invalid End Date format or calendar day.");
+        statusLabel_->setStyleSheet("color: #dc2626; font-weight: bold;");
+        statusLabel_->setVisible(true);
+        return;
+    }
+
+    if (end < start) {
+        QMessageBox::warning(this, "Invalid Date Range",
+            QString("End Date '%1' cannot precede Start Date '%2'.").arg(endStr, startStr));
+        statusLabel_->setText("Error: End Date cannot precede Start Date.");
+        statusLabel_->setStyleSheet("color: #dc2626; font-weight: bold;");
+        statusLabel_->setVisible(true);
+        return;
+    }
+
+    std::string today = QDate::currentDate().toString("yyyy-MM-dd").toStdString();
     try {
         seasonService_.add(start, end, percent);
-        statusLabel_->setText("Seasonal discount added successfully!");
-        statusLabel_->setStyleSheet("color: #16a34a; font-weight: bold;");
+        if (start > today) {
+            statusLabel_->setText(QString("Seasonal discount scheduled! It will automatically activate on %1.").arg(startStr));
+            statusLabel_->setStyleSheet("color: #2563eb; font-weight: bold;");
+        } else {
+            statusLabel_->setText("Seasonal discount added and active now!");
+            statusLabel_->setStyleSheet("color: #16a34a; font-weight: bold;");
+        }
         statusLabel_->setVisible(true);
 
         refresh();
     } catch (const PosError& e) {
+        QMessageBox::warning(this, "Cannot Add Season", QString::fromStdString(e.what()));
         statusLabel_->setText(QString::fromStdString(e.what()));
         statusLabel_->setStyleSheet("color: #dc2626; font-weight: bold;");
         statusLabel_->setVisible(true);

@@ -88,7 +88,7 @@ OrderScreen::OrderScreen(OrderService& orders,
     merchantEdit_->setPlaceholderText("Merchant (for Card/Wallet)");
     merchantEdit_->setStyleSheet("QLineEdit { padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
 
-    status_ = new QLabel("Scan a product or press F2 for new order.", this);
+    status_ = new QLabel("Scan a product or click New Order.", this);
     status_->setWordWrap(true);
     status_->setStyleSheet("font-size: 12px; font-weight: 500; color: #334155;");
 
@@ -118,42 +118,53 @@ OrderScreen::OrderScreen(OrderService& orders,
     itemButtons->addWidget(descriptionButton);
     itemButtons->addWidget(removeButton);
 
-    // Payment Box
+    // Payment & Settlement Box with Tax and Discount preview
     auto* paymentBox = new QGroupBox("Payment & Settlement", this);
     paymentBox->setStyleSheet("QGroupBox { font-weight: bold; font-size: 13px; color: #1e293b; }");
     auto* paymentLayout = new QGridLayout(paymentBox);
+    paymentLayout->setSpacing(8);
 
-    paymentLayout->addWidget(new QLabel("Special Disc (% max 8):", paymentBox), 0, 0);
+    paymentLayout->addWidget(new QLabel("Total Tax:", paymentBox), 0, 0);
+    totalTaxLabel_ = new QLabel("0.00 PKR", paymentBox);
+    totalTaxLabel_->setStyleSheet("font-size: 13px; font-weight: bold; color: #475569;");
+    paymentLayout->addWidget(totalTaxLabel_, 0, 1);
+
+    paymentLayout->addWidget(new QLabel("Total Discount:", paymentBox), 0, 2);
+    totalDiscountLabel_ = new QLabel("0.00 PKR", paymentBox);
+    totalDiscountLabel_->setStyleSheet("font-size: 13px; font-weight: bold; color: #dc2626;");
+    paymentLayout->addWidget(totalDiscountLabel_, 0, 3);
+
+    paymentLayout->addWidget(new QLabel("Special Disc (% max 8):", paymentBox), 1, 0);
     specialDiscountSpin_ = new QDoubleSpinBox(paymentBox);
     specialDiscountSpin_->setRange(0.0, 8.0);
     specialDiscountSpin_->setSingleStep(0.5);
     specialDiscountSpin_->setSuffix(" %");
     connect(specialDiscountSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &OrderScreen::onPaymentInputsChanged);
-    paymentLayout->addWidget(specialDiscountSpin_, 0, 1);
+    paymentLayout->addWidget(specialDiscountSpin_, 1, 1);
 
-    paymentLayout->addWidget(new QLabel("Payable Amount:", paymentBox), 0, 2);
+    paymentLayout->addWidget(new QLabel("Payable Amount:", paymentBox), 1, 2);
     payableAmountLabel_ = new QLabel("0.00 PKR", paymentBox);
     payableAmountLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #2563eb;");
-    paymentLayout->addWidget(payableAmountLabel_, 0, 3);
+    paymentLayout->addWidget(payableAmountLabel_, 1, 3);
 
-    paymentLayout->addWidget(new QLabel("Amount Received:", paymentBox), 1, 0);
+    paymentLayout->addWidget(new QLabel("Amount Received:", paymentBox), 2, 0);
     amountReceivedSpin_ = new QDoubleSpinBox(paymentBox);
     amountReceivedSpin_->setRange(0.0, 9999999.0);
     amountReceivedSpin_->setDecimals(2);
     connect(amountReceivedSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &OrderScreen::onPaymentInputsChanged);
-    paymentLayout->addWidget(amountReceivedSpin_, 1, 1);
+    paymentLayout->addWidget(amountReceivedSpin_, 2, 1);
 
-    paymentLayout->addWidget(new QLabel("Change / Balance:", paymentBox), 1, 2);
+    paymentLayout->addWidget(new QLabel("Change / Balance:", paymentBox), 2, 2);
     balanceReturnedLabel_ = new QLabel("0.00 PKR", paymentBox);
     balanceReturnedLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #16a34a;");
-    paymentLayout->addWidget(balanceReturnedLabel_, 1, 3);
+    paymentLayout->addWidget(balanceReturnedLabel_, 2, 3);
 
-    // Order action buttons row with hotkey labels
-    newOrderButton_ = new QPushButton("🆕 New (F2)", this);
-    holdButton_ = new QPushButton("⏸️ Hold (F4)", this);
-    viewHeldButton_ = new QPushButton("📋 View Held Orders (F5)", this);
-    editOrderButton_ = new QPushButton("📂 Edit Order (F6)", this);
-    billButton_ = new QPushButton("🧾 Bill (F12)", this);
+    // Order action buttons row
+    newOrderButton_ = new QPushButton("🆕 New Order", this);
+    holdButton_ = new QPushButton("⏸️ Hold Order", this);
+    viewHeldButton_ = new QPushButton("📋 View Held Orders", this);
+    editOrderButton_ = new QPushButton("📂 Edit Order", this);
+    billButton_ = new QPushButton("🧾 Generate Bill", this);
 
     newOrderButton_->setStyleSheet("QPushButton { background-color: #64748b; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #475569; }");
     holdButton_->setStyleSheet("QPushButton { background-color: #d97706; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #b45309; }");
@@ -174,11 +185,21 @@ OrderScreen::OrderScreen(OrderService& orders,
     orderButtons->addWidget(editOrderButton_);
     orderButtons->addWidget(billButton_);
 
+    // Manual typing space under scanning box and above quantity
+    manualBarcodeInput_ = new QLineEdit(this);
+    manualBarcodeInput_->setPlaceholderText("Enter barcode & press Enter");
+    manualBarcodeInput_->setStyleSheet("QLineEdit { padding: 6px; border: 1.5px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; font-weight: 500; }");
+    connect(manualBarcodeInput_, &QLineEdit::returnPressed, this, &OrderScreen::addManualBarcode);
+
+    auto* manualForm = new QFormLayout();
+    manualForm->addRow("Manual barcode:", manualBarcodeInput_);
+
     auto* quantityForm = new QFormLayout();
     quantityForm->addRow("Quantity per scan:", quantity_);
 
     auto* left = new QVBoxLayout();
     left->addWidget(camera_, 1);
+    left->addLayout(manualForm);
     left->addLayout(quantityForm);
     left->addWidget(details_, 1);
 
@@ -200,28 +221,16 @@ OrderScreen::OrderScreen(OrderService& orders,
     layout->addLayout(left, 1);
     layout->addLayout(right, 2);
 
-    setupShortcuts();
-
     orders_.start();
     refreshTable();
     updateHoldButtonState();
 }
 
-void OrderScreen::setupShortcuts() {
-    auto* scF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
-    connect(scF2, &QShortcut::activated, this, &OrderScreen::newOrder);
-
-    auto* scF4 = new QShortcut(QKeySequence(Qt::Key_F4), this);
-    connect(scF4, &QShortcut::activated, this, &OrderScreen::holdOrder);
-
-    auto* scF5 = new QShortcut(QKeySequence(Qt::Key_F5), this);
-    connect(scF5, &QShortcut::activated, this, &OrderScreen::viewHeldOrders);
-
-    auto* scF6 = new QShortcut(QKeySequence(Qt::Key_F6), this);
-    connect(scF6, &QShortcut::activated, this, &OrderScreen::openEditOrder);
-
-    auto* scF12 = new QShortcut(QKeySequence(Qt::Key_F12), this);
-    connect(scF12, &QShortcut::activated, this, &OrderScreen::generateBill);
+void OrderScreen::addManualBarcode() {
+    QString code = manualBarcodeInput_->text().trimmed();
+    if (code.isEmpty()) return;
+    handleCode(code.toStdString());
+    manualBarcodeInput_->clear();
 }
 
 void OrderScreen::showFrame(const Image& frame) {
@@ -429,7 +438,7 @@ void OrderScreen::resumeOrder() {
 void OrderScreen::openEditOrder() {
     bool ok = false;
     QString orderId = QInputDialog::getText(
-        this, "Open / Edit Order (F6)", "Enter Order ID to edit:",
+        this, "Open / Edit Order", "Enter Order ID to edit:",
         QLineEdit::Normal, "", &ok);
 
     if (!ok || orderId.trimmed().isEmpty()) return;
@@ -470,7 +479,7 @@ void OrderScreen::openEditOrder() {
     refreshTable();
     updateHoldButtonState();
     recalculateTotals();
-    setStatus("Editing order " + QString::fromStdString(id) + ". Adjust items and press F12 to save.", false);
+    setStatus("Editing order " + QString::fromStdString(id) + ". Adjust items and click Generate Bill.", false);
 }
 
 void OrderScreen::onPaymentInputsChanged() {
@@ -478,32 +487,36 @@ void OrderScreen::onPaymentInputsChanged() {
 }
 
 void OrderScreen::recalculateTotals() {
-    if (!orders_.hasActiveDraft()) return;
-
-    Money subtotal;
-    for (const auto& line : orders_.draft().lines) {
-        Money lineAmount = line.unitPrice * line.quantity;
-        Money lineTax = line.tax * line.quantity;
-        Money lineDiscount = line.discount * line.quantity;
-        subtotal += (lineAmount + lineTax - lineDiscount);
+    if (!orders_.hasActiveDraft() || orders_.draft().lines.empty()) {
+        totalTaxLabel_->setText("0.00 PKR");
+        totalDiscountLabel_->setText("0.00 PKR");
+        payableAmountLabel_->setText("0.00 PKR");
+        balanceReturnedLabel_->setText("0.00 PKR");
+        return;
     }
 
-    double specialPercent = specialDiscountSpin_->value();
-    double specialAmt = static_cast<double>(subtotal.paisa()) * (specialPercent / 100.0);
-    Money specialDiscount = Money::fromPaisa(std::llround(specialAmt));
-    Money payable = subtotal - specialDiscount;
+    try {
+        double specialPercent = specialDiscountSpin_->value();
+        Bill bill = checkout_.previewBill(orders_.draft(), specialPercent, Money());
 
-    payableAmountLabel_->setText(QString::fromStdString(payable.toString()) + " PKR");
+        totalTaxLabel_->setText(QString::fromStdString(bill.totalTax.toString()) + " PKR");
 
-    double recVal = amountReceivedSpin_->value();
-    if (recVal <= 0.0) {
-        amountReceivedSpin_->setValue(payable.paisa() / 100.0);
-        recVal = payable.paisa() / 100.0;
+        Money allDiscounts = bill.totalDiscount + bill.seasonalDiscount + bill.specialDiscount;
+        totalDiscountLabel_->setText("-" + QString::fromStdString(allDiscounts.toString()) + " PKR");
+        payableAmountLabel_->setText(QString::fromStdString(bill.totalPayable.toString()) + " PKR");
+
+        double recVal = amountReceivedSpin_->value();
+        if (recVal <= 0.0) {
+            amountReceivedSpin_->setValue(bill.totalPayable.paisa() / 100.0);
+            recVal = bill.totalPayable.paisa() / 100.0;
+        }
+
+        Money received = Money::fromDouble(recVal);
+        Money balance = (received.paisa() >= bill.totalPayable.paisa()) ? (received - bill.totalPayable) : Money();
+        balanceReturnedLabel_->setText(QString::fromStdString(balance.toString()) + " PKR");
+    } catch (const std::exception&) {
+        // Fallback
     }
-
-    Money received = Money::fromDouble(recVal);
-    Money balance = (received.paisa() >= payable.paisa()) ? (received - payable) : Money();
-    balanceReturnedLabel_->setText(QString::fromStdString(balance.toString()) + " PKR");
 }
 
 void OrderScreen::generateBill() {
@@ -538,7 +551,7 @@ void OrderScreen::generateBill() {
 void OrderScreen::updateHoldButtonState() {
     auto held = orders_.heldOrders();
     viewHeldButton_->setEnabled(!held.empty());
-    viewHeldButton_->setText(QString("📋 View Held Orders (F5) [%1]").arg(held.size()));
+    viewHeldButton_->setText(QString("📋 View Held Orders [%1]").arg(held.size()));
 }
 
 void OrderScreen::refreshTable() {
@@ -565,7 +578,11 @@ void OrderScreen::clearForm() {
     paymentCombo_->setCurrentIndex(0);
     specialDiscountSpin_->setValue(0.0);
     amountReceivedSpin_->setValue(0.0);
-    status_->setText("Scan a product or press F2 for new order.");
+    totalTaxLabel_->setText("0.00 PKR");
+    totalDiscountLabel_->setText("0.00 PKR");
+    payableAmountLabel_->setText("0.00 PKR");
+    balanceReturnedLabel_->setText("0.00 PKR");
+    status_->setText("Scan a product or click New Order.");
 }
 
 void OrderScreen::setStatus(const QString& text, bool isError) {
