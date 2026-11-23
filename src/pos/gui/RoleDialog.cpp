@@ -37,12 +37,12 @@ RoleDialog::RoleDialog(QWidget* parent)
     separator->setFrameShape(QFrame::HLine);
     separator->setStyleSheet("color: #E2E8F0; margin: 8px 0;");
 
-    QLabel* managerLabel = new QLabel("Manager Access (PIN: 1234)", this);
+    QLabel* managerLabel = new QLabel("Manager Access", this);
     managerLabel->setStyleSheet("font-size: 13px; font-weight: bold; color: #0F172A;");
 
     QLineEdit* pinEdit = new QLineEdit(this);
     pinEdit->setEchoMode(QLineEdit::Password);
-    pinEdit->setPlaceholderText("Enter Manager PIN (1234)");
+    pinEdit->setPlaceholderText("Enter PIN");
     pinEdit->setStyleSheet(
         "QLineEdit { padding: 9px; border: 2px solid #64748B; border-radius: 6px; "
         "font-size: 16px; font-weight: bold; background-color: #FFFFFF; color: #000000; } "
