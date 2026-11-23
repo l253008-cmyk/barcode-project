@@ -3,9 +3,14 @@
 
 #include "pos/gui/MainWindow.hpp"
 
+#include <QDir>
+#include <QFile>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QLabel>
+#include <QPainter>
+#include <QPixmap>
+#include <QPolygonF>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -210,6 +215,35 @@ void MainWindow::onCode(const std::string& code) {
 }
 
 void MainWindow::applyStyleSheet() {
+    // Ensure arrow icons exist for spinboxes
+    QDir().mkpath("data/icons");
+    if (!QFile::exists("data/icons/spin_up.png")) {
+        QPixmap upPix(16, 16);
+        upPix.fill(Qt::transparent);
+        QPainter p(&upPix);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(QColor("#0F172A"));
+        p.setPen(Qt::NoPen);
+        QPolygonF poly;
+        poly << QPointF(8, 4) << QPointF(13, 11) << QPointF(3, 11);
+        p.drawPolygon(poly);
+        p.end();
+        upPix.save("data/icons/spin_up.png", "PNG");
+    }
+    if (!QFile::exists("data/icons/spin_down.png")) {
+        QPixmap downPix(16, 16);
+        downPix.fill(Qt::transparent);
+        QPainter p(&downPix);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setBrush(QColor("#0F172A"));
+        p.setPen(Qt::NoPen);
+        QPolygonF poly;
+        poly << QPointF(3, 5) << QPointF(13, 5) << QPointF(8, 12);
+        p.drawPolygon(poly);
+        p.end();
+        downPix.save("data/icons/spin_down.png", "PNG");
+    }
+
     setStyleSheet(
         "QWidget { color: #0F172A; font-family: 'Segoe UI', Arial, sans-serif; }"
         "QMainWindow { background-color: #F8FAFC; }"
@@ -229,12 +263,15 @@ void MainWindow::applyStyleSheet() {
         "QHeaderView::section { background-color: #F1F5F9; color: #0F172A; font-weight: bold; padding: 7px; border: none; border-bottom: 2px solid #CBD5E1; border-right: 1px solid #E2E8F0; font-size: 12px; }"
         "QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox { padding: 6px 10px; border: 1.5px solid #94A3B8; border-radius: 5px; "
         "background-color: #FFFFFF; color: #0F172A; font-size: 13px; font-weight: 500; selection-background-color: #2563EB; selection-color: #FFFFFF; }"
+        "QDoubleSpinBox, QSpinBox { padding-right: 26px; }"
         "QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus, QSpinBox:focus { border: 2px solid #2563EB; color: #000000; }"
         "QLineEdit::placeholder { color: #64748B; font-weight: normal; }"
         "QDoubleSpinBox::up-button, QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 22px; border-left: 1px solid #CBD5E1; border-bottom: 1px solid #CBD5E1; background: #F1F5F9; border-top-right-radius: 4px; }"
         "QDoubleSpinBox::up-button:hover, QSpinBox::up-button:hover { background: #E2E8F0; }"
         "QDoubleSpinBox::down-button, QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 22px; border-left: 1px solid #CBD5E1; background: #F1F5F9; border-bottom-right-radius: 4px; }"
         "QDoubleSpinBox::down-button:hover, QSpinBox::down-button:hover { background: #E2E8F0; }"
+        "QDoubleSpinBox::up-arrow, QSpinBox::up-arrow { image: url(data/icons/spin_up.png); width: 9px; height: 9px; }"
+        "QDoubleSpinBox::down-arrow, QSpinBox::down-arrow { image: url(data/icons/spin_down.png); width: 9px; height: 9px; }"
         "QPushButton { padding: 7px 14px; border-radius: 5px; font-weight: 600; border: 1.5px solid #94A3B8; background-color: #F1F5F9; color: #0F172A; font-size: 13px; }"
         "QPushButton:hover { background-color: #E2E8F0; border-color: #64748B; color: #000000; }"
         "QPushButton:pressed { background-color: #CBD5E1; }"

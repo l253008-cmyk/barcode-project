@@ -25,6 +25,7 @@
 #include "pos/domain/Order.hpp"
 #include "pos/gui/BillDialog.hpp"
 #include "pos/gui/CameraView.hpp"
+#include "pos/gui/HeldOrdersDialog.hpp"
 #include "pos/gui/ManagerApprovalDialog.hpp"
 #include "pos/gui/ProductDetailsWidget.hpp"
 #include "pos/services/CheckoutService.hpp"
@@ -127,7 +128,6 @@ OrderScreen::OrderScreen(OrderService& orders,
     specialDiscountSpin_->setRange(0.0, 8.0);
     specialDiscountSpin_->setSingleStep(0.5);
     specialDiscountSpin_->setSuffix(" %");
-    specialDiscountSpin_->setStyleSheet("QDoubleSpinBox { padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     connect(specialDiscountSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &OrderScreen::onPaymentInputsChanged);
     paymentLayout->addWidget(specialDiscountSpin_, 0, 1);
 
@@ -140,7 +140,6 @@ OrderScreen::OrderScreen(OrderService& orders,
     amountReceivedSpin_ = new QDoubleSpinBox(paymentBox);
     amountReceivedSpin_->setRange(0.0, 9999999.0);
     amountReceivedSpin_->setDecimals(2);
-    amountReceivedSpin_->setStyleSheet("QDoubleSpinBox { padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; font-weight: bold; }");
     connect(amountReceivedSpin_, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &OrderScreen::onPaymentInputsChanged);
     paymentLayout->addWidget(amountReceivedSpin_, 1, 1);
 
@@ -152,26 +151,26 @@ OrderScreen::OrderScreen(OrderService& orders,
     // Order action buttons row with hotkey labels
     newOrderButton_ = new QPushButton("🆕 New (F2)", this);
     holdButton_ = new QPushButton("⏸️ Hold (F4)", this);
-    resumeButton_ = new QPushButton("▶️ Resume (F5)", this);
+    viewHeldButton_ = new QPushButton("📋 View Held Orders (F5)", this);
     editOrderButton_ = new QPushButton("📂 Edit Order (F6)", this);
     billButton_ = new QPushButton("🧾 Bill (F12)", this);
 
     newOrderButton_->setStyleSheet("QPushButton { background-color: #64748b; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #475569; }");
     holdButton_->setStyleSheet("QPushButton { background-color: #d97706; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #b45309; }");
-    resumeButton_->setStyleSheet("QPushButton { background-color: #4f46e5; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #4338ca; } QPushButton:disabled { background-color: #e2e8f0; color: #94a3b8; }");
+    viewHeldButton_->setStyleSheet("QPushButton { background-color: #4f46e5; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #4338ca; } QPushButton:disabled { background-color: #e2e8f0; color: #94a3b8; }");
     editOrderButton_->setStyleSheet("QPushButton { background-color: #0284c7; color: #ffffff; font-weight: bold; padding: 8px 12px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #0369a1; }");
     billButton_->setStyleSheet("QPushButton { background-color: #10b981; color: #ffffff; font-weight: bold; padding: 8px 16px; border-radius: 6px; border: none; } QPushButton:hover { background-color: #059669; }");
 
     connect(newOrderButton_, &QPushButton::clicked, this, &OrderScreen::newOrder);
     connect(holdButton_, &QPushButton::clicked, this, &OrderScreen::holdOrder);
-    connect(resumeButton_, &QPushButton::clicked, this, &OrderScreen::resumeOrder);
+    connect(viewHeldButton_, &QPushButton::clicked, this, &OrderScreen::viewHeldOrders);
     connect(editOrderButton_, &QPushButton::clicked, this, &OrderScreen::openEditOrder);
     connect(billButton_, &QPushButton::clicked, this, &OrderScreen::generateBill);
 
     auto* orderButtons = new QHBoxLayout();
     orderButtons->addWidget(newOrderButton_);
     orderButtons->addWidget(holdButton_);
-    orderButtons->addWidget(resumeButton_);
+    orderButtons->addWidget(viewHeldButton_);
     orderButtons->addWidget(editOrderButton_);
     orderButtons->addWidget(billButton_);
 
@@ -216,7 +215,7 @@ void OrderScreen::setupShortcuts() {
     connect(scF4, &QShortcut::activated, this, &OrderScreen::holdOrder);
 
     auto* scF5 = new QShortcut(QKeySequence(Qt::Key_F5), this);
-    connect(scF5, &QShortcut::activated, this, &OrderScreen::resumeOrder);
+    connect(scF5, &QShortcut::activated, this, &OrderScreen::viewHeldOrders);
 
     auto* scF6 = new QShortcut(QKeySequence(Qt::Key_F6), this);
     connect(scF6, &QShortcut::activated, this, &OrderScreen::openEditOrder);
@@ -390,9 +389,24 @@ void OrderScreen::holdOrder() {
     }
 }
 
-void OrderScreen::resumeOrder() {
+void OrderScreen::viewHeldOrders() {
+    auto held = orders_.heldOrders();
+    if (held.empty()) {
+        setStatus("No orders are currently on hold.", true);
+        return;
+    }
+    HeldOrdersDialog dialog(held, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        std::string selectedId = dialog.selectedOrderId();
+        if (!selectedId.empty()) {
+            resumeSpecificOrder(selectedId);
+        }
+    }
+}
+
+void OrderScreen::resumeSpecificOrder(const std::string& orderId) {
     try {
-        orders_.resumeLatest();
+        orders_.resume(orderId);
         const auto& d = orders_.draft();
         customerEdit_->setText(QString::fromStdString(d.customerName));
         contactEdit_->setText(QString::fromStdString(d.contact));
@@ -406,6 +420,10 @@ void OrderScreen::resumeOrder() {
     } catch (const PosError& error) {
         setStatus(QString::fromUtf8(error.what()), true);
     }
+}
+
+void OrderScreen::resumeOrder() {
+    viewHeldOrders();
 }
 
 void OrderScreen::openEditOrder() {
@@ -519,8 +537,8 @@ void OrderScreen::generateBill() {
 
 void OrderScreen::updateHoldButtonState() {
     auto held = orders_.heldOrders();
-    resumeButton_->setEnabled(!held.empty());
-    resumeButton_->setText(QString("▶️ Resume (F5) [%1]").arg(held.size()));
+    viewHeldButton_->setEnabled(!held.empty());
+    viewHeldButton_->setText(QString("📋 View Held Orders (F5) [%1]").arg(held.size()));
 }
 
 void OrderScreen::refreshTable() {

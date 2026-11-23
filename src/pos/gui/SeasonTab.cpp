@@ -24,33 +24,43 @@ void SeasonTab::setupUi() {
     // Form box
     auto* formBox = new QGroupBox("Add Seasonal Discount Period", this);
     formBox->setStyleSheet("QGroupBox { font-weight: bold; font-size: 13px; color: #1e293b; }");
-    auto* formLayout = new QHBoxLayout(formBox);
-    formLayout->setSpacing(12);
+    auto* formLayout = new QGridLayout(formBox);
+    formLayout->setSpacing(10);
+
+    auto* startLbl = new QLabel("Start Date (YYYY-MM-DD):", formBox);
+    startLbl->setStyleSheet("font-weight: bold; color: #0f172a;");
+    formLayout->addWidget(startLbl, 0, 0);
 
     startDateEdit_ = new QLineEdit(formBox);
-    startDateEdit_->setPlaceholderText("Start (YYYY-MM-DD)");
+    startDateEdit_->setPlaceholderText("YYYY-MM-DD");
     startDateEdit_->setText(QDate::currentDate().toString("yyyy-MM-dd"));
-    startDateEdit_->setStyleSheet("QLineEdit { padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #0f172a; background: #ffffff; }");
-    formLayout->addWidget(startDateEdit_);
+    startDateEdit_->setStyleSheet("QLineEdit { padding: 6px; border: 1.5px solid #cbd5e1; border-radius: 4px; color: #0f172a; background: #ffffff; font-weight: 500; }");
+    formLayout->addWidget(startDateEdit_, 0, 1);
+
+    auto* endLbl = new QLabel("End Date (YYYY-MM-DD):", formBox);
+    endLbl->setStyleSheet("font-weight: bold; color: #0f172a;");
+    formLayout->addWidget(endLbl, 0, 2);
 
     endDateEdit_ = new QLineEdit(formBox);
-    endDateEdit_->setPlaceholderText("End (YYYY-MM-DD)");
+    endDateEdit_->setPlaceholderText("YYYY-MM-DD");
     endDateEdit_->setText(QDate::currentDate().addDays(30).toString("yyyy-MM-dd"));
-    endDateEdit_->setStyleSheet("QLineEdit { padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #0f172a; background: #ffffff; }");
-    formLayout->addWidget(endDateEdit_);
+    endDateEdit_->setStyleSheet("QLineEdit { padding: 6px; border: 1.5px solid #cbd5e1; border-radius: 4px; color: #0f172a; background: #ffffff; font-weight: 500; }");
+    formLayout->addWidget(endDateEdit_, 0, 3);
+
+    auto* discLbl = new QLabel("Discount (%):", formBox);
+    discLbl->setStyleSheet("font-weight: bold; color: #0f172a;");
+    formLayout->addWidget(discLbl, 1, 0);
 
     percentSpin_ = new QDoubleSpinBox(formBox);
     percentSpin_->setRange(0.1, 100.0);
     percentSpin_->setValue(10.0);
     percentSpin_->setSuffix(" %");
-    percentSpin_->setFixedWidth(100);
-    percentSpin_->setStyleSheet("QDoubleSpinBox { padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #0f172a; background: #ffffff; }");
-    formLayout->addWidget(percentSpin_);
+    formLayout->addWidget(percentSpin_, 1, 1);
 
-    auto* addBtn = new QPushButton("Add Season", formBox);
-    addBtn->setStyleSheet("QPushButton { padding: 7px 16px; background: #2563eb; color: #ffffff; font-weight: bold; border-radius: 4px; border: none; } QPushButton:hover { background: #1d4ed8; }");
+    auto* addBtn = new QPushButton("➕ Add Seasonal Discount", formBox);
+    addBtn->setStyleSheet("QPushButton { padding: 8px 18px; background: #2563eb; color: #ffffff; font-weight: bold; border-radius: 4px; border: none; } QPushButton:hover { background: #1d4ed8; }");
     connect(addBtn, &QPushButton::clicked, this, &SeasonTab::onAddSeason);
-    formLayout->addWidget(addBtn);
+    formLayout->addWidget(addBtn, 1, 3);
 
     mainLayout->addWidget(formBox);
 

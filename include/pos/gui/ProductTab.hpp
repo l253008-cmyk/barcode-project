@@ -10,6 +10,7 @@
 #include <QDoubleSpinBox>
 #include <QPushButton>
 #include <QTableWidget>
+#include <QTabWidget>
 #include <QLabel>
 #include <vector>
 
@@ -69,8 +70,9 @@ private:
     QLabel* editStatusLabel_ = nullptr;
     int editingProductId_ = -1;
 
-    // Catalog table
+    // Catalog table and side panel
     QTableWidget* table_ = nullptr;
+    QTabWidget* sideTabs_ = nullptr;
     std::vector<Product> currentProducts_;
 };
 

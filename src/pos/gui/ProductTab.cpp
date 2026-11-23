@@ -22,16 +22,12 @@ ProductTab::ProductTab(ProductService& productService,
 }
 
 void ProductTab::setupUi() {
-    auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(12);
+    auto* mainLayout = new QHBoxLayout(this);
+    mainLayout->setSpacing(16);
     mainLayout->setContentsMargins(14, 14, 14, 14);
 
-    // Top section: Add Product and Edit Product side by side
-    auto* formsLayout = new QHBoxLayout();
-    formsLayout->setSpacing(12);
-
     // 1. Add Product Group
-    auto* addBox = new QGroupBox("Add New Product (Barcode Auto-Prefixed)", this);
+    auto* addBox = new QGroupBox("New Product Details", this);
     addBox->setStyleSheet("QGroupBox { font-weight: bold; font-size: 13px; color: #1e293b; }");
     auto* addGrid = new QGridLayout(addBox);
     addGrid->setSpacing(8);
@@ -79,7 +75,6 @@ void ProductTab::setupUi() {
     priceSpin_->setRange(0.01, 999999.0);
     priceSpin_->setValue(100.0);
     priceSpin_->setDecimals(2);
-    priceSpin_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     addGrid->addWidget(priceSpin_, 5, 1);
 
     addGrid->addWidget(new QLabel("Tax (PKR):", addBox), 6, 0);
@@ -87,7 +82,6 @@ void ProductTab::setupUi() {
     taxSpin_->setRange(0.0, 99999.0);
     taxSpin_->setValue(0.0);
     taxSpin_->setDecimals(2);
-    taxSpin_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     addGrid->addWidget(taxSpin_, 6, 1);
 
     addGrid->addWidget(new QLabel("Discount (PKR):", addBox), 7, 0);
@@ -95,14 +89,12 @@ void ProductTab::setupUi() {
     discountSpin_->setRange(0.0, 99999.0);
     discountSpin_->setValue(0.0);
     discountSpin_->setDecimals(2);
-    discountSpin_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     addGrid->addWidget(discountSpin_, 7, 1);
 
     addGrid->addWidget(new QLabel("Initial Stock:", addBox), 8, 0);
     qtySpin_ = new QDoubleSpinBox(addBox);
     qtySpin_->setRange(0.0, 99999.0);
     qtySpin_->setValue(50.0);
-    qtySpin_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     addGrid->addWidget(qtySpin_, 8, 1);
 
     auto* addBtn = new QPushButton("Add Product", addBox);
@@ -114,8 +106,6 @@ void ProductTab::setupUi() {
     addStatusLabel_->setStyleSheet("font-size: 11px; font-weight: 500;");
     addStatusLabel_->setVisible(false);
     addGrid->addWidget(addStatusLabel_, 10, 0, 1, 2);
-
-    formsLayout->addWidget(addBox);
 
     // 2. Edit Product Group
     auto* editBox = new QGroupBox("Edit Selected Product (Click table row to edit)", this);
@@ -144,27 +134,23 @@ void ProductTab::setupUi() {
     editPrice_ = new QDoubleSpinBox(editBox);
     editPrice_->setRange(0.01, 999999.0);
     editPrice_->setDecimals(2);
-    editPrice_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     editGrid->addWidget(editPrice_, 3, 1);
 
     editGrid->addWidget(new QLabel("Tax (PKR):", editBox), 4, 0);
     editTax_ = new QDoubleSpinBox(editBox);
     editTax_->setRange(0.0, 99999.0);
     editTax_->setDecimals(2);
-    editTax_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     editGrid->addWidget(editTax_, 4, 1);
 
     editGrid->addWidget(new QLabel("Discount (PKR):", editBox), 5, 0);
     editDiscount_ = new QDoubleSpinBox(editBox);
     editDiscount_->setRange(0.0, 99999.0);
     editDiscount_->setDecimals(2);
-    editDiscount_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     editGrid->addWidget(editDiscount_, 5, 1);
 
     editGrid->addWidget(new QLabel("Stock Qty:", editBox), 6, 0);
     editQty_ = new QDoubleSpinBox(editBox);
     editQty_->setRange(0.0, 99999.0);
-    editQty_->setStyleSheet("QDoubleSpinBox { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #0f172a; }");
     editGrid->addWidget(editQty_, 6, 1);
 
     saveEditBtn_ = new QPushButton("Save Changes", editBox);
@@ -178,11 +164,17 @@ void ProductTab::setupUi() {
     editStatusLabel_->setVisible(false);
     editGrid->addWidget(editStatusLabel_, 8, 0, 1, 2);
 
-    formsLayout->addWidget(editBox);
-    mainLayout->addLayout(formsLayout);
+    // Left side: Catalog Table Container
+    auto* leftContainer = new QWidget(this);
+    auto* leftLayout = new QVBoxLayout(leftContainer);
+    leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->setSpacing(8);
 
-    // Products table
-    table_ = new QTableWidget(this);
+    auto* catTitle = new QLabel("📦 <b>Product Catalog</b> (Click row to edit product)", leftContainer);
+    catTitle->setStyleSheet("font-size: 13px; color: #0f172a; padding: 2px 0;");
+    leftLayout->addWidget(catTitle);
+
+    table_ = new QTableWidget(leftContainer);
     table_->setColumnCount(9);
     table_->setHorizontalHeaderLabels({"ID", "Cat", "Barcode", "Acronym", "Name", "Unit", "Price", "Tax", "Stock"});
     table_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
@@ -197,11 +189,25 @@ void ProductTab::setupUi() {
     table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     table_->setStyleSheet(
-        "QTableWidget { background-color: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; border-radius: 6px; }"
+        "QTableWidget { background-color: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 6px; }"
         "QHeaderView::section { background-color: #f1f5f9; color: #334155; font-weight: bold; padding: 6px; border: none; }"
     );
     connect(table_, &QTableWidget::cellClicked, this, &ProductTab::onProductSelected);
-    mainLayout->addWidget(table_);
+    leftLayout->addWidget(table_, 1);
+
+    mainLayout->addWidget(leftContainer, 6);
+
+    // Right side: Tabbed Add / Edit panel
+    sideTabs_ = new QTabWidget(this);
+    sideTabs_->setStyleSheet(
+        "QTabWidget::pane { border: 1.5px solid #cbd5e1; border-radius: 6px; background: #ffffff; padding: 4px; }"
+        "QTabBar::tab { background: #e2e8f0; color: #1e293b; padding: 7px 14px; font-weight: bold; font-size: 12px; border-top-left-radius: 4px; border-top-right-radius: 4px; margin-right: 2px; }"
+        "QTabBar::tab:selected { background: #ffffff; color: #2563eb; border-top: 2px solid #2563eb; }"
+    );
+    sideTabs_->addTab(addBox, "➕ Add New Product");
+    sideTabs_->addTab(editBox, "✏️ Edit Product");
+
+    mainLayout->addWidget(sideTabs_, 4);
 }
 
 void ProductTab::refresh() {
@@ -343,6 +349,9 @@ void ProductTab::onProductSelected(int row, int /*col*/) {
 
     saveEditBtn_->setEnabled(true);
     editStatusLabel_->setVisible(false);
+    if (sideTabs_) {
+        sideTabs_->setCurrentIndex(1);
+    }
 }
 
 void ProductTab::onSaveProductEdit() {

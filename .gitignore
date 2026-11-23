@@ -67,5 +67,6 @@ build_*/
 data/Bill.txt
 data/Order.txt
 data/OrderDetail.txt
+data/receipts/
 
 

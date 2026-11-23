@@ -47,6 +47,8 @@ public slots:
 
 private slots:
     void describeSelected();
+    void viewHeldOrders();
+    void resumeSpecificOrder(const std::string& orderId);
     void removeSelected();
     void incrementSelected();
     void decrementSelected();
@@ -82,7 +84,7 @@ private:
     // Fast order action buttons
     QPushButton* newOrderButton_ = nullptr;
     QPushButton* holdButton_ = nullptr;
-    QPushButton* resumeButton_ = nullptr;
+    QPushButton* viewHeldButton_ = nullptr;
     QPushButton* editOrderButton_ = nullptr;
     QPushButton* billButton_ = nullptr;
 

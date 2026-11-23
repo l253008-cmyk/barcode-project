@@ -11,7 +11,8 @@
 ReportsTab::ReportsTab(ReportService& reportService, QWidget* parent)
     : QWidget(parent), reportService_(reportService) {
     setupUi();
-    onGenerateReport();
+    reportTitleLabel_->setText("Select a report from the dropdown above and click 'Generate Report'.");
+    reportTitleLabel_->setStyleSheet("font-size: 13px; font-weight: 500; color: #64748b; font-style: italic; padding: 6px 0;");
 }
 
 void ReportsTab::setupUi() {
@@ -92,12 +93,13 @@ void ReportsTab::setupUi() {
 }
 
 void ReportsTab::refresh() {
-    onGenerateReport();
+    if (table_->rowCount() > 0) {
+        onGenerateReport();
+    }
 }
 
 void ReportsTab::onReportTypeChanged(int index) {
     dateFilterWidget_->setVisible(index == 2);
-    onGenerateReport();
 }
 
 void ReportsTab::onGenerateReport() {
@@ -135,6 +137,7 @@ void ReportsTab::onGenerateReport() {
 
 void ReportsTab::renderReport(const ReportTable& rep) {
     reportTitleLabel_->setText(QString::fromStdString(rep.title));
+    reportTitleLabel_->setStyleSheet("font-size: 15px; font-weight: bold; color: #0f172a; padding: 4px 0;");
 
     int colCount = static_cast<int>(rep.headers.size());
     table_->setColumnCount(colCount);
