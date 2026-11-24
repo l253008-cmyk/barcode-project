@@ -1,7 +1,12 @@
+// OrderService.hpp                                    Owner: Person 5
+// High-level service managing order draft lifecycle, hold/resume, and order editing.
+
 #ifndef POS_ORDERSERVICE_HPP
 #define POS_ORDERSERVICE_HPP
 
 #include <string>
+#include <vector>
+
 #include "pos/common/IClock.hpp"
 #include "pos/domain/Order.hpp"
 #include "pos/services/IdGenerator.hpp"
@@ -10,39 +15,63 @@
 #include "pos/storage/IOrderRepository.hpp"
 #include "pos/storage/IProductRepository.hpp"
 
-// builds one order step by step (the draft) and saves it at the end
 class OrderService {
 public:
     OrderService(IProductRepository& products,
-        ProductService& productService,
-        IOrderRepository& orders,
-        IOrderDetailRepository& orderDetails,
-        IdGenerator& idGenerator,
-        const IClock& clock);
+                 ProductService& productService,
+                 IOrderRepository& orders,
+                 IOrderDetailRepository& orderDetails,
+                 IdGenerator& idGenerator,
+                 const IClock& clock);
 
-    // starts a new empty order, an old unfinished one is thrown away
+    // Starts a new empty order (an unheld draft is discarded)
     void start();
 
-    // adds a product by barcode, the price comes from the product
-    // scanning the same product again adds to its quantity
-    // error if the barcode is unknown or the stock is not enough
-    void addItem(const std::string& barcode, double quantity);
+    // Adds a product by barcode. If already in draft, increments quantity.
+    // Stock check validates the combined quantity. Default qty = 1.0.
+    void addItem(const std::string& barcode, double quantity = 1.0);
 
-    // takes a product out of the order
+    // Removes a product line from the draft
     void removeItem(const std::string& barcode);
 
-    // name is needed, contact is optional (empty becomes "-")
-    void setCustomer(const std::string& name, const std::string& contact);
+    // Changes the quantity of an existing line item in the order
+    void updateItemQuantity(const std::string& barcode, double newQuantity);
 
-    // merchant is optional (empty becomes "-")
-    void setPayment(PaymentMode mode, const std::string& merchant);
+    // Puts active draft on hold into Order.txt/OrderDetail.txt and starts a new order
+    void hold();
+    void holdCurrentOrder() { hold(); } // Backward compatibility alias
 
-    // the order as it is right now
+    // Returns all currently held orders
+    std::vector<Order> heldOrders() const;
+    std::vector<Order> getHeldOrders() const { return heldOrders(); }
+    bool hasHeldOrders() const { return !heldOrders().empty(); }
+
+    // Resumes the most recently held order
+    void resumeLatest();
+
+    // Resumes a specific held order by orderId
+    void resume(const std::string& orderId);
+    void resumeHeldOrder(size_t index = 0);
+
+    // Loads an existing order for editing (verifying 7-day rule for Paid orders)
+    void loadOrderForEdit(const std::string& orderId, bool managerApproved);
+
+    // Sets customer name and contact
+    void setCustomer(const std::string& name, const std::string& contact = "-");
+
+    // Sets payment mode and optional merchant
+    void setPayment(PaymentMode mode, const std::string& merchant = "-");
+
+    // Access active draft
     const Order& draft() const;
+    bool hasActiveDraft() const { return hasDraft; }
+    bool isEditingExisting() const { return isEditingExisting_; }
 
-    // saves the order and its lines, reduces the stock, gives back the saved order
-    // nothing is saved if something is missing or the stock is not enough any more
+    // Finalizes a new or resumed order
     Order finalize();
+
+    // Finalizes edits to an existing order (updating stock differential and files)
+    Order finalizeEdit();
 
 private:
     void requireDraft() const;
@@ -55,9 +84,12 @@ private:
     const IClock& clock;
 
     Order draftOrder;
-    bool hasDraft;
-    bool customerIsSet;
-    bool paymentIsSet;
+    bool hasDraft = false;
+    bool customerIsSet = false;
+    bool paymentIsSet = false;
+    bool isEditingExisting_ = false;
+    std::vector<OrderLine> originalLines_; // Snapshot for stock difference on edit
+    std::vector<Order> memoryHeldOrders_;
 };
 
-#endif
+#endif // POS_ORDERSERVICE_HPP
