@@ -1,4 +1,4 @@
-﻿﻿#include "pos/services/BillingService.hpp"
+﻿#include "pos/services/BillingService.hpp"
 #include "pos/common/PosError.hpp"
 #include "test_utils.hpp"
 #include <iostream>
@@ -53,7 +53,55 @@ int main() {
         ok &= checkResult("Total payable", "985.00", bill.totalPayable.toString());
     }
 
-    // Test 2: Empty order throws PosError
+    // Test 2: Seasonal and Special Discount calculation
+    {
+        Order order;
+        order.id = "00012315";
+        order.customerName = "Sara";
+
+        OrderLine line;
+        line.acronym = "ITEM";
+        line.unitPrice = Money::parse("1000.00");
+        line.tax = Money::parse("0.00");
+        line.discount = Money::parse("0.00");
+        line.quantity = 1.0;
+        order.lines.push_back(line);
+
+        // Subtotal = 1000.00.
+        // Seasonal discount = 10% = 100.00.
+        // Remaining = 900.00.
+        // Special discount = 5% of 900.00 = 45.00.
+        // Total Payable = 900.00 - 45.00 = 855.00.
+        BillInputs inputs;
+        inputs.seasonPercent = 10.0;
+        inputs.specialPercent = 5.0;
+        inputs.amountReceived = Money::parse("1000.00");
+
+        Bill bill = service.createBill(order, inputs);
+        ok &= checkResult("Seasonal discount", "100.00", bill.seasonalDiscount.toString());
+        ok &= checkResult("Special discount", "45.00", bill.specialDiscount.toString());
+        ok &= checkResult("Total payable with discounts", "855.00", bill.totalPayable.toString());
+        ok &= checkResult("Balance returned", "145.00", bill.balanceReturned.toString());
+    }
+
+    // Test 3: Special discount exceeding 8% throws PosError
+    {
+        Order order;
+        order.id = "00012316";
+        OrderLine line;
+        line.acronym = "ITEM";
+        line.unitPrice = Money::parse("100.00");
+        line.quantity = 1.0;
+        order.lines.push_back(line);
+
+        BillInputs inputs;
+        inputs.specialPercent = 8.5; // Exceeds 8% limit!
+        ok &= checkThrowsAs<PosError>("Special discount > 8% throws", [&]() {
+            service.createBill(order, inputs);
+            });
+    }
+
+    // Test 4: Empty order throws PosError
     {
         Order emptyOrder;
         ok &= checkThrowsAs<PosError>("Empty order throws", [&]() {
@@ -61,7 +109,7 @@ int main() {
             });
     }
 
-    // Test 3: Zero or negative quantity throws PosError
+    // Test 5: Zero or negative quantity throws PosError
     {
         Order order;
         order.id = "00012314";
