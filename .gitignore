@@ -69,3 +69,4 @@ data/Order.txt
 data/OrderDetail.txt
 
 
+*.json
