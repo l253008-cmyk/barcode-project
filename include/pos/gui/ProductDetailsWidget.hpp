@@ -19,7 +19,5 @@ public:
     void clear();
 
 private:
-    static const int kFieldCount = 10;
-    QLabel* description_;
-    QLabel* values_[kFieldCount];
+    QLabel* description_ = nullptr;
 };

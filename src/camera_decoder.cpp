@@ -52,12 +52,22 @@ namespace {
             }
 
             // Candidate start guard found!
-            // Strategy 1: Average module width across the full standard 59-run (95-module) span.
-            // If the barcode is uncorrupted, the end guard is at runs[i+56..i+58].
+            // Fast structural pruning: 59 runs must span roughly 95 modules (between 70 and 120 modules)
             long long totalPixels = 0;
             for (int k = 0; k < 59; ++k) {
                 totalPixels += runs[i + k];
             }
+            if (totalPixels < 70 * width || totalPixels > 120 * width) {
+                continue;
+            }
+
+            // End guard sanity check: runs[i+56..58] should be similar to width
+            double endWidth = (runs[i + 56] + runs[i + 57] + runs[i + 58]) / 3.0;
+            if (endWidth < 0.4 * width || endWidth > 2.0 * width) {
+                continue;
+            }
+
+            // Strategy 1: Average module width across the full standard 59-run (95-module) span.
             double globalAvgWidth = totalPixels / 95.0;
             if (globalAvgWidth >= 1.0) {
                 try {
