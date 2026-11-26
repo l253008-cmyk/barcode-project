@@ -113,3 +113,66 @@ void FileProductRepository::updateQuantity(int id, double newQuantity) {
         throw PosError("Cannot save " + filePath + ": " + errorCode.message());
     }
 }
+
+void FileProductRepository::add(const Product& product) {
+    vector<Product> products = all();
+
+    for (const auto& p : products) {
+        if (p.id == product.id) {
+            throw PosError("Product id " + to_string(product.id) + " is already used");
+        }
+        if (p.barcode == product.barcode) {
+            throw PosError("Product barcode " + product.barcode + " is already used");
+        }
+    }
+
+    products.push_back(product);
+
+    vector<vector<string>> records;
+    for (const auto& p : products) {
+        records.push_back(ProductCodec::format(p));
+    }
+
+    string tempPath = filePath + ".tmp";
+    writeRecords(tempPath, records);
+
+    error_code errorCode;
+    filesystem::rename(tempPath, filePath, errorCode);
+    if (errorCode) {
+        error_code ignored;
+        filesystem::remove(tempPath, ignored);
+        throw PosError("Cannot save " + filePath + ": " + errorCode.message());
+    }
+}
+
+void FileProductRepository::update(const Product& product) {
+    vector<Product> products = all();
+    bool found = false;
+    for (auto& p : products) {
+        if (p.id == product.id) {
+            p = product;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        throw PosError("Product with ID " + to_string(product.id) + " not found to update");
+    }
+
+    vector<vector<string>> records;
+    for (const auto& p : products) {
+        records.push_back(ProductCodec::format(p));
+    }
+
+    string tempPath = filePath + ".tmp";
+    writeRecords(tempPath, records);
+
+    error_code errorCode;
+    filesystem::rename(tempPath, filePath, errorCode);
+    if (errorCode) {
+        error_code ignored;
+        filesystem::remove(tempPath, ignored);
+        throw PosError("Cannot save " + filePath + ": " + errorCode.message());
+    }
+}

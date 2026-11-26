@@ -19,6 +19,8 @@ public:
     virtual std::optional<Product> findById(int id) const = 0;
 
     virtual void updateQuantity(int id, double newQuantity) = 0;
+    virtual void add(const Product& product) = 0;
+    virtual void update(const Product& product) = 0;
 };
 
 #endif

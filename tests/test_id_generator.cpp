@@ -36,37 +36,43 @@ using namespace pos;
 
 namespace {
 
-class FakeClock : public IClock {
-public:
-    explicit FakeClock(const std::string& date) : date_(date) {}
-    void setDate(const std::string& date) { date_ = date; }
-    std::string today() const override { return date_; }
-    std::string now() const override { return "10:32:05"; }
-    long long millis() const override { return 0; }
+    class FakeClock : public IClock {
+    public:
+        explicit FakeClock(const std::string& date) : date_(date) {}
+        void setDate(const std::string& date) { date_ = date; }
+        std::string today() const override { return date_; }
+        std::string now() const override { return "10:32:05"; }
+        long long millis() const override { return 0; }
 
-private:
-    std::string date_;
-};
+    private:
+        std::string date_;
+    };
 
-class FakeOrderRepository : public IOrderRepository {
-public:
-    void add(const Order& order) override { last_ = order.id; }
-    std::string lastId() const override { return last_; }
-    void setLast(const std::string& id) { last_ = id; }
+    class FakeOrderRepository : public IOrderRepository {
+    public:
+        void add(const Order& order) override { last_ = order.id; }
+        std::optional<Order> findById(const std::string&) const override { return std::nullopt; }
+        std::vector<Order> all() const override { return {}; }
+        void update(const Order&) override {}
+        std::string lastId() const override { return last_; }
+        void setLast(const std::string& id) { last_ = id; }
 
-private:
-    std::string last_;
-};
+    private:
+        std::string last_;
+    };
 
-class FakeBillRepository : public IBillRepository {
-public:
-    void add(const Bill& bill) override { last_ = bill.id; }
-    std::string lastId() const override { return last_; }
-    void setLast(const std::string& id) { last_ = id; }
+    class FakeBillRepository : public IBillRepository {
+    public:
+        void add(const Bill& bill) override { last_ = bill.id; }
+        void replace(const Bill&) override {}
+        std::optional<Bill> findByOrderId(const std::string&) const override { return std::nullopt; }
+        std::vector<Bill> all() const override { return {}; }
+        std::string lastId() const override { return last_; }
+        void setLast(const std::string& id) { last_ = id; }
 
-private:
-    std::string last_;
-};
+    private:
+        std::string last_;
+    };
 
 }  // namespace
 

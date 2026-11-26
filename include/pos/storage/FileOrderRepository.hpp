@@ -1,31 +1,34 @@
+// FileOrderRepository.hpp                                Owner: Person 2
+// File-backed implementation of IOrderRepository for Order.txt.
+
 #ifndef POS_STORAGE_FILEORDERREPOSITORY_HPP
 #define POS_STORAGE_FILEORDERREPOSITORY_HPP
 
+#include <optional>
 #include <string>
+#include <vector>
 
-#include "pos/common/List.hpp"
 #include "pos/common/TextRecordFile.hpp"
 #include "pos/storage/IOrderRepository.hpp"
 
 namespace pos {
 
-// Order.txt: one line per order, appended in the order they are made.
-class FileOrderRepository : public IOrderRepository {
-public:
-    explicit FileOrderRepository(const std::string& path);
+    class FileOrderRepository : public IOrderRepository {
+    public:
+        explicit FileOrderRepository(const std::string& path);
 
-    void add(const Order& order) override;
-    std::string lastId() const override;
+        void add(const Order& order) override;
+        std::optional<Order> findById(const std::string& id) const override;
+        std::vector<Order> all() const override;
+        void update(const Order& order) override;
+        std::string lastId() const override;
 
-    // Every stored order (without lines). Handy for tests and reports.
-    List<Order> all() const;
-
-private:
-    TextRecordFile file_;
-};
+    private:
+        TextRecordFile file_;
+    };
 
 }  // namespace pos
 
 using FileOrderRepository = pos::FileOrderRepository;
 
-#endif
+#endif // POS_STORAGE_FILEORDERREPOSITORY_HPP

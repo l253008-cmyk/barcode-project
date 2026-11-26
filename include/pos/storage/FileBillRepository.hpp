@@ -1,26 +1,32 @@
+// FileBillRepository.hpp                             Owner: Person 2
+// File-backed implementation of IBillRepository for Bill.txt and BillDetail.txt.
+
 #ifndef POS_FILE_BILL_REPOSITORY_HPP
 #define POS_FILE_BILL_REPOSITORY_HPP
 
-#include "pos/common/TextRecordFile.hpp"
-#include "pos/storage/IBillRepository.hpp"
+#include <optional>
 #include <string>
 #include <vector>
 
-// Stores bills in Bill.txt. The line format is the job of BillCodec and the
-// reading and writing of lines is the job of TextRecordFile.
+#include "pos/storage/IBillRepository.hpp"
+
 class FileBillRepository : public IBillRepository {
 public:
-    explicit FileBillRepository(TextRecordFile file);
-    explicit FileBillRepository(const std::string& path);
+    explicit FileBillRepository(const std::string& billPath, const std::string& detailPath);
+    explicit FileBillRepository(const std::string& billPath);
 
     void add(const Bill& bill) override;
+    void replace(const Bill& bill) override;
+    std::optional<Bill> findByOrderId(const std::string& orderId) const override;
+    std::vector<Bill> all() const override;
     std::string lastId() const override;
 
-    // Every saved bill (used by tests and later by a bill history screen).
-    std::vector<Bill> all() const;
+    const std::string& billPath() const { return billPath_; }
+    const std::string& detailPath() const { return detailPath_; }
 
 private:
-    TextRecordFile file_;
+    std::string billPath_;
+    std::string detailPath_;
 };
 
 #endif // POS_FILE_BILL_REPOSITORY_HPP

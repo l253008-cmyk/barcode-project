@@ -88,33 +88,57 @@ static string joinWithSpaces(const vector<string>& tokens, int firstIndex, int l
 }
 
 // a line looks like:
-// id barcode acronym name unit price tax discount quantity path
-// the name can have spaces, so we take 3 fields from the left and 6 from
-// the right, and what is left in the middle is the name
+// Old (10 fields): id barcode acronym name unit price tax discount quantity path
+// New (11 fields): id categoryId barcode acronym name unit price tax discount quantity path
+// Backward compatibility: If tokens[1] has 6 digits, it's old format.
+// If tokens[1] has 2 digits, it's new format.
 Product ProductCodec::parse(const vector<string>& tokens) {
-    // 3 + at least one word of name + 6 = 10
     int count = static_cast<int>(tokens.size());
     if (count < 10) {
         throw PosError("A product line needs at least 10 fields, found " + to_string(count));
     }
 
-    // from the left
     int id = parseWholeNumber(tokens[0], "Product id");
     if (id < 1) {
         throw PosError("Product id must be 1 or more: '" + tokens[0] + "'");
     }
 
-    string barcode = tokens[1];
+    string categoryId;
+    string barcode;
+    string acronym;
+    string name;
+
+    // Detect format based on token 1 length
+    if (tokens[1].size() == 6) {
+        // Old 10-field format
+        barcode = tokens[1];
+        categoryId = "";
+        acronym = tokens[2];
+        name = joinWithSpaces(tokens, 3, count - 7);
+    }
+    else {
+        // New 11-field format (needs at least 11 tokens)
+        if (count < 11) {
+            throw PosError("A 11-field product line needs at least 11 tokens, found " + to_string(count));
+        }
+        categoryId = tokens[1];
+        if (categoryId.size() != 2 || categoryId[0] < '1' || categoryId[0] > '9' || categoryId[1] < '0' || categoryId[1] > '9') {
+            throw PosError("Category ID must be 2 digits (10 to 99): '" + categoryId + "'");
+        }
+        barcode = tokens[2];
+        acronym = tokens[3];
+        name = joinWithSpaces(tokens, 4, count - 7);
+    }
+
     if (!isValidCode(barcode)) {
         throw PosError("Product barcode is not a valid code: '" + barcode + "'");
     }
 
-    string acronym = tokens[2];
     if (acronym.size() > 8) {
         throw PosError("Product acronym is longer than 8 characters: '" + acronym + "'");
     }
 
-    // from the right
+    // from the right (last 6 tokens)
     MeasurementUnit unit = unitFromText(tokens[count - 6]);
     Money unitPrice = parseMoneyField(tokens[count - 5], "Unit price");
     Money tax = parseMoneyField(tokens[count - 4], "Tax");
@@ -128,27 +152,27 @@ Product ProductCodec::parse(const vector<string>& tokens) {
         throw PosError("A count product needs a whole available quantity: '" + tokens[count - 2] + "'");
     }
 
-    // the middle part is the name
-    string name = joinWithSpaces(tokens, 3, count - 7);
-
-    Product product = { id, barcode, acronym, name, unit,
-                       unitPrice, tax, discount, availableQty, barcodePath };
+    Product product = { id, categoryId, barcode, acronym, name, unit,
+                        unitPrice, tax, discount, availableQty, barcodePath };
     return product;
 }
 
 vector<string> ProductCodec::format(const Product& product) {
     vector<string> tokens;
 
-    tokens.insert(tokens.end(), 1, to_string(product.id));
-    tokens.insert(tokens.end(), 1, product.barcode);
-    tokens.insert(tokens.end(), 1, product.acronym);
-    tokens.insert(tokens.end(), 1, product.name);                 // spaces inside the name are fine
-    tokens.insert(tokens.end(), 1, unitToText(product.unit));
-    tokens.insert(tokens.end(), 1, product.unitPrice.toString());
-    tokens.insert(tokens.end(), 1, product.tax.toString());
-    tokens.insert(tokens.end(), 1, product.discount.toString());
-    tokens.insert(tokens.end(), 1, quantityToText(product.availableQty));
-    tokens.insert(tokens.end(), 1, product.barcodePath);
+    tokens.push_back(to_string(product.id));
+    if (!product.categoryId.empty()) {
+        tokens.push_back(product.categoryId);
+    }
+    tokens.push_back(product.barcode);
+    tokens.push_back(product.acronym);
+    tokens.push_back(product.name);                 // spaces inside the name are fine
+    tokens.push_back(unitToText(product.unit));
+    tokens.push_back(product.unitPrice.toString());
+    tokens.push_back(product.tax.toString());
+    tokens.push_back(product.discount.toString());
+    tokens.push_back(quantityToText(product.availableQty));
+    tokens.push_back(product.barcodePath);
 
     return tokens;
 }

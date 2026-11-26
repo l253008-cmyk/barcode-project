@@ -1,185 +1,122 @@
+// BillCodec.cpp                                       Owner: Person 2
+// Implementation of 14-field BillCodec for Bill.txt.
+
 #include "pos/storage/BillCodec.hpp"
 #include "pos/common/PosError.hpp"
-#include <cstdlib>
-#include <iomanip>
-#include <sstream>
 
-namespace {
+using namespace std;
 
-    const std::size_t kFixedTailTokens = 10;   // orderId ... status
-    const std::size_t kMinTokens = 12;         // billId + at least one name token + 10 fixed
-    const std::size_t kBillIdDigits = 9;
-    const std::size_t kOrderIdDigits = 8;
-
-    bool isDigits(const std::string& text, std::size_t length) {
-        if (text.size() != length) {
-            return false;
+static Money parseMoney(const string& text, const string& fieldName) {
+    try {
+        Money m = Money::parse(text);
+        if (m.paisa() < 0) {
+            throw PosError(fieldName + " cannot be negative: '" + text + "'");
         }
-        for (char c : text) {
-            if (c < '0' || c > '9') {
-                return false;
-            }
-        }
-        return true;
+        return m;
     }
-
-    // 2 becomes "2", 1.5 becomes "1.5" (no useless zeros).
-    std::string formatQuantity(double quantity) {
-        std::ostringstream out;
-        out << std::fixed << std::setprecision(3) << quantity;
-        std::string text = out.str();
-        while (text.back() == '0') {
-            text.pop_back();
-        }
-        if (text.back() == '.') {
-            text.pop_back();
-        }
-        return text;
+    catch (const PosError& e) {
+        throw PosError(fieldName + " invalid money amount: '" + text + "' (" + e.what() + ")");
     }
-
-    double parseQuantity(const std::string& text) {
-        char* end = nullptr;
-        double value = std::strtod(text.c_str(), &end);
-        if (text.empty() || end != text.c_str() + text.size() || value <= 0) {
-            throw PosError("Bad quantity in Bill.txt: '" + text + "'");
-        }
-        return value;
-    }
-
-    std::vector<std::string> splitWords(const std::string& text) {
-        std::vector<std::string> words;
-        std::string word;
-        for (char c : text) {
-            if (c == ' ') {
-                if (!word.empty()) {
-                    words.push_back(word);
-                    word.clear();
-                }
-            }
-            else {
-                word += c;
-            }
-        }
-        if (!word.empty()) {
-            words.push_back(word);
-        }
-        return words;
-    }
-
-    // Reads one record into the whole-bill part (header) and one bill line.
-    void parseRecord(const std::vector<std::string>& tokens, Bill& header, BillLine& line) {
-        if (tokens.size() < kMinTokens) {
-            throw PosError("Bill line has too few fields (need at least 12)");
-        }
-
-        const std::size_t tail = tokens.size() - kFixedTailTokens;   // index of the order id
-
-        if (!isDigits(tokens[0], kBillIdDigits)) {
-            throw PosError("Bill id must be 9 digits: '" + tokens[0] + "'");
-        }
-        if (!isDigits(tokens[tail], kOrderIdDigits)) {
-            throw PosError("Order id must be 8 digits: '" + tokens[tail] + "'");
-        }
-
-        std::string name;
-        for (std::size_t i = 1; i < tail; i++) {
-            if (!name.empty()) {
-                name += " ";
-            }
-            name += tokens[i];
-        }
-        if (name == "-") {
-            name = "";   // "-" means that no customer name was given
-        }
-
-        header.id = tokens[0];
-        header.customerName = name;
-        header.orderId = tokens[tail];
-        header.totalWithoutTax = Money::parse(tokens[tail + 5]);
-        header.totalTax = Money::parse(tokens[tail + 6]);
-        header.totalDiscount = Money::parse(tokens[tail + 7]);
-        header.totalPayable = Money::parse(tokens[tail + 8]);
-        header.status = tokens[tail + 9];
-
-        line.acronym = tokens[tail + 1];
-        line.unitPrice = Money::parse(tokens[tail + 2]);
-        line.discount = Money::parse(tokens[tail + 3]);
-        line.quantity = parseQuantity(tokens[tail + 4]);
-    }
-
-    bool sameHeader(const Bill& a, const Bill& b) {
-        return a.id == b.id &&
-            a.customerName == b.customerName &&
-            a.orderId == b.orderId &&
-            a.totalWithoutTax == b.totalWithoutTax &&
-            a.totalTax == b.totalTax &&
-            a.totalDiscount == b.totalDiscount &&
-            a.totalPayable == b.totalPayable &&
-            a.status == b.status;
-    }
-
-}  // namespace
-
-std::vector<std::vector<std::string>> BillCodec::toRecords(const Bill& bill) {
-    if (bill.lines.empty()) {
-        throw PosError("A bill needs at least one line");
-    }
-    if (!isDigits(bill.id, kBillIdDigits)) {
-        throw PosError("Bill id must be 9 digits: '" + bill.id + "'");
-    }
-    if (!isDigits(bill.orderId, kOrderIdDigits)) {
-        throw PosError("Order id must be 8 digits: '" + bill.orderId + "'");
-    }
-    if (bill.status.empty() || bill.status.find(' ') != std::string::npos) {
-        throw PosError("Bill status must be one word");
-    }
-
-    std::vector<std::string> nameWords = splitWords(bill.customerName);
-    if (nameWords.empty()) {
-        nameWords.push_back("-");   // keeps every column in place
-    }
-
-    std::vector<std::vector<std::string>> records;
-    for (const BillLine& line : bill.lines) {
-        if (line.acronym.empty() || line.acronym.find(' ') != std::string::npos) {
-            throw PosError("Product acronym must be one word");
-        }
-
-        std::vector<std::string> record;
-        record.push_back(bill.id);
-        for (const std::string& word : nameWords) {
-            record.push_back(word);
-        }
-        record.push_back(bill.orderId);
-        record.push_back(line.acronym);
-        record.push_back(line.unitPrice.toString());
-        record.push_back(line.discount.toString());
-        record.push_back(formatQuantity(line.quantity));
-        record.push_back(bill.totalWithoutTax.toString());
-        record.push_back(bill.totalTax.toString());
-        record.push_back(bill.totalDiscount.toString());
-        record.push_back(bill.totalPayable.toString());
-        record.push_back(bill.status);
-        records.push_back(record);
-    }
-    return records;
 }
 
-std::vector<Bill> BillCodec::fromRecords(const std::vector<std::vector<std::string>>& records) {
-    std::vector<Bill> bills;
+Bill BillCodec::parse(const vector<string>& tokens) {
+    // 1 token for billId + at least 1 token for customerName + 12 fixed tokens = 14 minimum
+    int count = static_cast<int>(tokens.size());
+    if (count < 14) {
+        throw PosError("Bill line requires at least 14 tokens, found " + to_string(count));
+    }
 
-    for (const std::vector<std::string>& record : records) {
-        Bill header;
-        BillLine line;
-        parseRecord(record, header, line);
+    string billId = tokens[0];
+    if (billId.size() != 9) {
+        throw PosError("Bill ID must be 9 digits: '" + billId + "'");
+    }
 
-        if (bills.empty() || bills.back().id != header.id) {
-            bills.push_back(header);          // first line of a new bill
+    // Fixed tokens from the right:
+    string orderId = tokens[count - 12];
+    Money totalWithoutTax = parseMoney(tokens[count - 11], "Total without tax");
+    Money totalTax = parseMoney(tokens[count - 10], "Total tax");
+    Money totalDiscount = parseMoney(tokens[count - 9], "Total discount");
+    Money totalPayable = parseMoney(tokens[count - 8], "Total payable");
+    Money amountReceived = parseMoney(tokens[count - 7], "Amount received");
+    Money balanceReturned = parseMoney(tokens[count - 6], "Balance returned");
+    string status = tokens[count - 5];
+    Money seasonalDiscount = parseMoney(tokens[count - 4], "Seasonal discount");
+    Money specialDiscount = parseMoney(tokens[count - 3], "Special discount");
+    string billDate = tokens[count - 2];
+    string billTime = tokens[count - 1];
+
+    // The customer name is everything between token 0 and count - 12
+    string customerName;
+    for (int i = 1; i <= count - 13; ++i) {
+        if (!customerName.empty()) {
+            customerName += " ";
         }
-        else if (!sameHeader(bills.back(), header)) {
-            throw PosError("Lines of bill " + header.id + " do not have the same totals");
-        }
-        bills.back().lines.push_back(line);
+        customerName += tokens[i];
+    }
+    if (customerName.empty()) {
+        customerName = "Walk-in";
+    }
+
+    Bill bill;
+    bill.id = billId;
+    bill.customerName = customerName;
+    bill.orderId = orderId;
+    bill.totalWithoutTax = totalWithoutTax;
+    bill.totalTax = totalTax;
+    bill.totalDiscount = totalDiscount;
+    bill.totalPayable = totalPayable;
+    bill.amountReceived = amountReceived;
+    bill.balanceReturned = balanceReturned;
+    bill.status = status;
+    bill.seasonalDiscount = seasonalDiscount;
+    bill.specialDiscount = specialDiscount;
+    bill.date = billDate;
+    bill.time = billTime;
+
+    return bill;
+}
+
+vector<string> BillCodec::format(const Bill& bill) {
+    vector<string> tokens;
+    tokens.push_back(bill.id);
+
+    // Customer name (words separated into tokens if multiple words)
+    string cust = bill.customerName.empty() ? "Walk-in" : bill.customerName;
+    // We split customer name by spaces so each word is its own token
+    size_t start = 0;
+    while (start < cust.size()) {
+        while (start < cust.size() && cust[start] == ' ') start++;
+        if (start >= cust.size()) break;
+        size_t end = start;
+        while (end < cust.size() && cust[end] != ' ') end++;
+        tokens.push_back(cust.substr(start, end - start));
+        start = end;
+    }
+
+    tokens.push_back(bill.orderId.empty() ? "-" : bill.orderId);
+    tokens.push_back(bill.totalWithoutTax.toString());
+    tokens.push_back(bill.totalTax.toString());
+    tokens.push_back(bill.totalDiscount.toString());
+    tokens.push_back(bill.totalPayable.toString());
+    tokens.push_back(bill.amountReceived.toString());
+    tokens.push_back(bill.balanceReturned.toString());
+    tokens.push_back(bill.status.empty() ? "paid" : bill.status);
+    tokens.push_back(bill.seasonalDiscount.toString());
+    tokens.push_back(bill.specialDiscount.toString());
+    tokens.push_back(bill.date.empty() ? "2026-11-21" : bill.date);
+    tokens.push_back(bill.time.empty() ? "00:00:00" : bill.time);
+
+    return tokens;
+}
+
+vector<vector<string>> BillCodec::toRecords(const Bill& bill) {
+    return { format(bill) };
+}
+
+vector<Bill> BillCodec::fromRecords(const vector<vector<string>>& records) {
+    vector<Bill> bills;
+    for (const auto& rec : records) {
+        bills.push_back(parse(rec));
     }
     return bills;
 }
