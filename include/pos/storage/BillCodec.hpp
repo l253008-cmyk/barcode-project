@@ -1,3 +1,10 @@
+// BillCodec.hpp                                       Owner: Person 2
+// Codec for serializing and deserializing Bill summary records (Bill.txt).
+// 14 fields:
+// billId customerName orderId totalWithoutTax totalTax totalDiscount
+// totalPayable amountReceived balanceReturned status seasonalDiscount
+// specialDiscount billDate billTime
+
 #ifndef POS_BILL_CODEC_HPP
 #define POS_BILL_CODEC_HPP
 
@@ -5,22 +12,16 @@
 #include <string>
 #include <vector>
 
-// Knows only the format of Bill.txt. It does not read or write the file
-// (the repository does that) and it does not calculate anything.
-//
-// One record (list of tokens) is one line of the file, without the # marker:
-//   billId  customer name words...  orderId  acronym  unitPrice  discount
-//   quantity  totalWithoutTax  totalTax  totalDiscount  totalPayable  status
-// The first token and the last 10 tokens are fixed. Everything between them
-// is the customer name.
 class BillCodec {
 public:
-    // One record for every line of the bill. All records of one bill carry
-    // the same bill id and the same totals.
-    static std::vector<std::vector<std::string>> toRecords(const Bill& bill);
+    // Parses a single 14+ token record into a Bill summary.
+    static Bill parse(const std::vector<std::string>& tokens);
 
-    // Groups the records that share a bill id into bills.
-    // Throws PosError for a bad record.
+    // Formats a Bill summary into a single line of tokens for Bill.txt.
+    static std::vector<std::string> format(const Bill& bill);
+
+    // Convenience / compatibility methods
+    static std::vector<std::vector<std::string>> toRecords(const Bill& bill);
     static std::vector<Bill> fromRecords(const std::vector<std::vector<std::string>>& records);
 };
 

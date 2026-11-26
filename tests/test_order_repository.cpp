@@ -78,7 +78,7 @@ static void testOrderRepository() {
 
     repo.add(makeOrder("00012314"));
     CHECK(readAllText(kOrderPath) ==
-          "00012314 2026-11-14 10:32:05 Ali Raza 0300-1234567 paid 985.00 cash -\x23\n");
+        "00012314 2026-11-14 10:32:05 Ali Raza 0300-1234567 paid 985.00 cash -\x23\n");
     CHECK(repo.lastId() == "00012314");
 
     Order second = makeOrder("00012415");
@@ -89,7 +89,7 @@ static void testOrderRepository() {
     repo.add(second);
     CHECK(repo.lastId() == "00012415");
 
-    List<Order> all = repo.all();
+    std::vector<Order> all = repo.all();
     CHECK(all.size() == 2);
     CHECK(all[0].id == "00012314");
     CHECK(all[0].customerName == "Ali Raza");
@@ -129,10 +129,10 @@ static void testDetailRepository() {
     repo.add("00012314", makeLine(2, "100002", 1.5));
     CHECK(readAllText(kDetailPath) == "00012314 1 100001 2\x23\n00012314 2 100002 1.5\x23\n");
 
-    List<OrderDetailRecord> rows = repo.all();
+    std::vector<IOrderDetailRepository::Entry> rows = repo.all();
     CHECK(rows.size() == 2);
-    CHECK(rows[0].orderId == "00012314" && rows[0].productId == 1 && rows[0].quantity == 2);
-    CHECK(rows[1].barcode == "100002" && rows[1].quantity == 1.5);
+    CHECK(rows[0].orderId == "00012314" && rows[0].line.productId == 1 && rows[0].line.quantity == 2);
+    CHECK(rows[1].line.barcode == "100002" && rows[1].line.quantity == 1.5);
 
     CHECK_THROWS(repo.add("00012314", makeLine(3, "100003", 0)));   // zero quantity
     CHECK(repo.all().size() == 2);

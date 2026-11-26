@@ -21,6 +21,12 @@ public:
     // changes the stock of one product and saves the file
     void updateQuantity(int id, double newQuantity) override;
 
+    // adds a new product to the file; throws PosError if id or barcode is already used
+    void add(const Product& product) override;
+
+    // updates an existing product's fields and rewrites the file
+    void update(const Product& product) override;
+
 private:
     std::string filePath;
 };
